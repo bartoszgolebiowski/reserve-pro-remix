@@ -14,18 +14,12 @@ export type CreateUserData = {
   role: UserRole;
   status?: UserStatus;
   isActive?: boolean;
-  metadata?: Record<string, any>;
 };
 
 export type UpdateUserData = Partial<{
   status: UserStatus;
   isActive: boolean;
   passwordHash: string;
-  failedLoginCount: number;
-  lockedUntil: string | null;
-  lastLoginAt: string;
-  requirePasswordChange: boolean;
-  metadata: Record<string, any>;
 }>;
 
 /**
@@ -75,9 +69,8 @@ export class UsersRepository {
         email: normalizedEmail,
         passwordHash: data.passwordHash,
         role: data.role,
-        status: data.status || "pending",
+        status: data.status || "active",
         isActive: data.isActive || false,
-        metadata: data.metadata || {},
       })
       .returning();
 
@@ -89,15 +82,10 @@ export class UsersRepository {
    */
   async updateUser(id: string, data: UpdateUserData) {
     // Normalize date fields to ISO strings for SQLite
-    const payload: any = {
+    const payload: Partial<UpdateUserData> & { updatedAt: string } = {
       ...data,
       updatedAt: new Date().toISOString(),
     };
-
-    if (payload.lockedUntil && payload.lockedUntil instanceof Date)
-      payload.lockedUntil = payload.lockedUntil.toISOString();
-    if (payload.lastLoginAt && payload.lastLoginAt instanceof Date)
-      payload.lastLoginAt = payload.lastLoginAt.toISOString();
 
     const result = await this.db
       .update(users)

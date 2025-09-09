@@ -23,7 +23,7 @@ Niniejszy dokument opisuje wymagania funkcjonalne dla aplikacji służącej do z
     - **Pracownik:** Dostęp do własnego kalendarza, możliwość zarządzania rezerwacjami, dodawania blokad czasowych.
 - **Zarządzanie Pracownikami przez Właściciela:** Właściciel ma możliwość dodawania nowych pracowników do systemu i przypisywania im ról (Fizjoterapeuta, Trener Personalny), oraz ustalanie stawki godzinowej dla pracownika w danej lokalizacji.
 - **Dołączanie do Lokalizacji przez Pracownika:** Pracownik ma możliwość dołączenia (lub wysłania prośby o dołączenie) do jednej lub wielu lokalizacji zdefiniowanych w systemie.
-- **Klienci:** W ramach MVP system **nie** wymaga tworzenia kont dla klientów końcowych. Dane klienta (imię, nazwisko, telefon, e-mail) są zbierane podczas procesu rezerwacji. Funkcjonalność kont klienckich i historii ich rezerwacji jest rozważana jako przyszłe rozszerzenie (Non-MVP).
+- **Klienci:** W ramach MVP system **nie** wymaga tworzenia kont dla klientów końcowych. Dane klienta (imię, nazwisko, telefon, e-mail) są zbierane podczas procesu rezerwacji.
 
 ### 3.2. Zarządzanie Kalendarzami
 

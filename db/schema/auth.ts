@@ -2,28 +2,21 @@
  * Schema bazy danych dla systemu uwierzytelniania
  */
 import { relations } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
-// Simplified users table
+// Users table - basic auth users
 export const users = sqliteTable("users", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => uuidv4()),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["OWNER", "WORKER"] })
-    .notNull()
-    .default("WORKER"),
-  status: text("status", { enum: ["pending", "active", "blocked"] })
-    .notNull()
-    .default("active"),
   createdAt: text("created_at").$default(() => new Date().toISOString()),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 });
 
-// Simplified sessions table
+// Sessions table for authentication
 export const sessions = sqliteTable("sessions", {
   id: text("id")
     .primaryKey()
@@ -37,13 +30,13 @@ export const sessions = sqliteTable("sessions", {
 });
 
 // Relations
-relations(sessions, ({ one }) => ({
+export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
     references: [users.id],
   }),
 }));
 
-relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   sessions: many(sessions),
 }));

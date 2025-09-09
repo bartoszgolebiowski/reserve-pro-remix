@@ -11,19 +11,6 @@ export type CreateSessionData = {
   expiresAt: string;
 };
 
-export type SessionData = {
-  id: string;
-  userId: string;
-  sessionToken: string;
-  expiresAt: string;
-  createdAt: string;
-  user?: any;
-};
-
-export type SessionWithUser = SessionData & {
-  user: any;
-};
-
 export class SessionsRepository {
   private db: DrizzleDatabase;
 
@@ -34,7 +21,7 @@ export class SessionsRepository {
   /**
    * Create a new session
    */
-  async createSession(data: CreateSessionData): Promise<SessionData> {
+  async createSession(data: CreateSessionData) {
     const result = await this.db
       .insert(sessions)
       .values({
@@ -44,26 +31,26 @@ export class SessionsRepository {
       })
       .returning();
 
-    return result[0] as SessionData;
+    return result[0];
   }
 
   /**
    * Find session by token
    */
-  async findSessionByToken(token: string): Promise<SessionData | null> {
+  async findSessionByToken(token: string) {
     const rows = await this.db
       .select()
       .from(sessions)
       .where(eq(sessions.sessionToken, token))
       .limit(1);
-    
-    return (rows[0] as SessionData) ?? null;
+
+    return rows[0] ?? null;
   }
 
   /**
    * Find session by token with user data
    */
-  async findSessionWithUserByToken(token: string): Promise<SessionWithUser | null> {
+  async findSessionWithUserByToken(token: string) {
     const rows = await this.db
       .select()
       .from(sessions)
@@ -77,15 +64,13 @@ export class SessionsRepository {
     return {
       ...sessionData,
       user: userData,
-    } as SessionWithUser;
+    };
   }
 
   /**
    * Delete session by ID
    */
-  async deleteSession(sessionId: string): Promise<void> {
-    await this.db
-      .delete(sessions)
-      .where(eq(sessions.id, sessionId));
+  async deleteSession(sessionId: string) {
+    await this.db.delete(sessions).where(eq(sessions.id, sessionId));
   }
 }
