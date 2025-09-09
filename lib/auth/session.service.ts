@@ -16,7 +16,7 @@ export class SessionService {
   /**
    * Create a new session
    */
-  async createSession(userId: string): Promise<string> {
+  async createSession(userId: string) {
     const sessionToken = this.generateSessionToken();
     const expiresAt = this.calculateExpiryDate();
 
@@ -32,7 +32,7 @@ export class SessionService {
   /**
    * Get session with user data
    */
-  async getSession(request: Request): Promise<SessionInfo | null> {
+  async getSession(request: Request) {
     const sessionToken = await this.getSessionTokenFromCookie(request);
 
     if (!sessionToken) {
@@ -65,7 +65,7 @@ export class SessionService {
   /**
    * Revoke a session
    */
-  async revokeSession(sessionToken: string): Promise<void> {
+  async revokeSession(sessionToken: string) {
     const session = await this.sessionsRepo.findSessionByToken(sessionToken);
     if (session) {
       await this.sessionsRepo.deleteSession(session.id);
@@ -75,7 +75,7 @@ export class SessionService {
   /**
    * Set session cookie
    */
-  async setSessionCookie(sessionToken: string): Promise<ResponseInit> {
+  async setSessionCookie(sessionToken: string) {
     const cookieValue = `${COOKIE_CONFIG.name}=${sessionToken}; Path=${COOKIE_CONFIG.path}; Max-Age=${Math.floor(COOKIE_CONFIG.maxAge / 1000)}; HttpOnly; SameSite=${COOKIE_CONFIG.sameSite}${COOKIE_CONFIG.secure ? "; Secure" : ""}`;
 
     return {
@@ -88,7 +88,7 @@ export class SessionService {
   /**
    * Clear session cookie
    */
-  async clearSessionCookie(): Promise<ResponseInit> {
+  async clearSessionCookie() {
     const cookieValue = `${COOKIE_CONFIG.name}=; Path=${COOKIE_CONFIG.path}; Max-Age=0; HttpOnly; SameSite=${COOKIE_CONFIG.sameSite}${COOKIE_CONFIG.secure ? "; Secure" : ""}`;
 
     return {
@@ -101,7 +101,7 @@ export class SessionService {
   /**
    * Get session token from cookie
    */
-  async getSessionTokenFromCookie(request: Request): Promise<string | null> {
+  async getSessionTokenFromCookie(request: Request) {
     const cookieHeader = request.headers.get("Cookie");
 
     if (!cookieHeader) {
@@ -123,21 +123,21 @@ export class SessionService {
   /**
    * Generate secure session token
    */
-  private generateSessionToken(): string {
+  private generateSessionToken() {
     return randomBytes(32).toString("base64url");
   }
 
   /**
    * Calculate session expiry date (30 days)
    */
-  private calculateExpiryDate(): string {
+  private calculateExpiryDate() {
     return new Date(Date.now() + COOKIE_CONFIG.maxAge).toISOString();
   }
 
   /**
    * Check if session is expired
    */
-  private isSessionExpired(session: { expiresAt: string }): boolean {
+  private isSessionExpired(session: { expiresAt: string }) {
     return new Date(session.expiresAt) <= new Date();
   }
 }

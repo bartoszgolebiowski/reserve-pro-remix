@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1757434646450,
-      "tag": "0000_steep_salo",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1757435032559,
-      "tag": "0001_icy_screwball",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1757436537902,
-      "tag": "0002_mature_outlaw_kid",
+      "when": 1757440552813,
+      "tag": "0000_glorious_mystique",
       "breakpoints": true
     }
   ]

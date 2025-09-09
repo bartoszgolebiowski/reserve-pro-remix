@@ -47,7 +47,8 @@ Ten projekt ma na celu zbudowanie potężnej, a jednocześnie przyjaznej użytko
 - **SQLite + Drizzle-ORM + Turso**
   - Główna relacyjna baza danych to SQLite dla rozwoju lokalnego.
   - Drizzle-ORM zapewnia typowane, lekkie warstwy ORM.
-  - Turso oferuje zewnętrzną usługę bazodanową (opartą na HTTP) do synchronizacji i/lub przechowywania danych produkcyjnych.
+  - Modele bazy danych są definiowane w TypeScript i synchronizowane z bazą danych. Ich lokalizacja to `db/schema`.
+  - Do komunikacji z bazą danych używamy repozytoriów w `lib/**/repos`.
 
 ## Frontend
 

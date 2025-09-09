@@ -1,13 +1,12 @@
 /**
  * Simplified role-based access control (RBAC)
  */
-import { redirect } from 'react-router';
-import type { SessionService } from './session.service';
-import type { User } from './validators.server';
+import { redirect } from "react-router";
+import type { SessionService } from "./session.service";
 
 export enum UserRole {
-  OWNER = 'OWNER',
-  WORKER = 'WORKER'
+  OWNER = "OWNER",
+  WORKER = "WORKER",
 }
 
 export class RBACService {
@@ -16,32 +15,32 @@ export class RBACService {
   /**
    * Check if user has specific role
    */
-  private checkRole(user: User, requiredRole: UserRole): boolean {
+  private checkRole(user: { role: string }, requiredRole: UserRole): boolean {
     return user.role === requiredRole;
   }
 
   /**
    * Check if user is owner
    */
-  isOwner(user: User): boolean {
+  isOwner(user: { role: string }): boolean {
     return this.checkRole(user, UserRole.OWNER);
   }
 
   /**
    * Check if user is worker
    */
-  isWorker(user: User): boolean {
+  isWorker(user: { role: string }): boolean {
     return this.checkRole(user, UserRole.WORKER);
   }
 
   /**
    * Require owner role or redirect
    */
-  async requireOwner(request: Request, redirectTo: string = '/unauthorized') {
+  async requireOwner(request: Request, redirectTo: string = "/unauthorized") {
     const session = await this.sessionService.getSession(request);
 
     if (!session?.user) {
-      throw redirect('/auth/login');
+      throw redirect("/auth/login");
     }
 
     if (!this.isOwner(session.user)) {
@@ -54,11 +53,11 @@ export class RBACService {
   /**
    * Require worker role or redirect
    */
-  async requireWorker(request: Request, redirectTo: string = '/unauthorized') {
+  async requireWorker(request: Request, redirectTo: string = "/unauthorized") {
     const session = await this.sessionService.getSession(request);
 
     if (!session?.user) {
-      throw redirect('/auth/login');
+      throw redirect("/auth/login");
     }
 
     if (!this.isWorker(session.user)) {

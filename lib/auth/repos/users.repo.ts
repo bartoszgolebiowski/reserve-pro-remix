@@ -12,8 +12,8 @@ export type CreateUserData = {
   email: string;
   passwordHash: string;
   role: UserRole;
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
 };
 
 export type UpdateUserData = Partial<{

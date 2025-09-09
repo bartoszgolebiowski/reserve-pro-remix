@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7301021f-8922-4bca-95e4-9dc30809ab80",
+  "id": "0e9930a5-e02b-4149-bdc7-84e710d66ce7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "sessions": {
@@ -94,6 +94,28 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'client'"
         },
         "created_at": {
           "name": "created_at",
@@ -231,10 +253,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "employees_id_profiles_id_fk": {
-          "name": "employees_id_profiles_id_fk",
+        "employees_id_users_id_fk": {
+          "name": "employees_id_users_id_fk",
           "tableFrom": "employees",
-          "tableTo": "profiles",
+          "tableTo": "users",
           "columnsFrom": [
             "id"
           ],
@@ -304,10 +326,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "locations_owner_id_profiles_id_fk": {
-          "name": "locations_owner_id_profiles_id_fk",
+        "locations_owner_id_users_id_fk": {
+          "name": "locations_owner_id_users_id_fk",
           "tableFrom": "locations",
-          "tableTo": "profiles",
+          "tableTo": "users",
           "columnsFrom": [
             "owner_id"
           ],
@@ -428,101 +450,12 @@
         }
       },
       "foreignKeys": {
-        "pricing_config_owner_id_profiles_id_fk": {
-          "name": "pricing_config_owner_id_profiles_id_fk",
+        "pricing_config_owner_id_users_id_fk": {
+          "name": "pricing_config_owner_id_users_id_fk",
           "tableFrom": "pricing_config",
-          "tableTo": "profiles",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "profiles": {
-      "name": "profiles",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "first_name": {
-          "name": "first_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "last_name": {
-          "name": "last_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "role": {
-          "name": "role",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'client'"
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "profiles_email_unique": {
-          "name": "profiles_email_unique",
-          "columns": [
-            "email"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "profiles_id_users_id_fk": {
-          "name": "profiles_id_users_id_fk",
-          "tableFrom": "profiles",
           "tableTo": "users",
           "columnsFrom": [
-            "id"
+            "owner_id"
           ],
           "columnsTo": [
             "id"

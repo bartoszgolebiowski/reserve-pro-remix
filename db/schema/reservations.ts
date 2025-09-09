@@ -6,22 +6,6 @@ import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 import { users } from "./auth";
 
-// Profiles table (extends users)
-export const profiles = sqliteTable("profiles", {
-  id: text("id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  email: text("email").notNull().unique(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  role: text("role", { enum: ["owner", "employee", "client"] })
-    .notNull()
-    .default("client"),
-  phone: text("phone"),
-  createdAt: text("created_at").$default(() => new Date().toISOString()),
-  updatedAt: text("updated_at").$default(() => new Date().toISOString()),
-});
-
 // Locations table
 export const locations = sqliteTable("locations", {
   id: text("id")
@@ -32,7 +16,7 @@ export const locations = sqliteTable("locations", {
   city: text("city").notNull(),
   ownerId: text("owner_id")
     .notNull()
-    .references(() => profiles.id, { onDelete: "cascade" }),
+    .references(() => users.id, { onDelete: "cascade" }),
   createdAt: text("created_at").$default(() => new Date().toISOString()),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()),
 });
@@ -57,9 +41,9 @@ export const rooms = sqliteTable("rooms", {
 export const employees = sqliteTable("employees", {
   id: text("id")
     .primaryKey()
-    .references(() => profiles.id, { onDelete: "cascade" }),
-  employeeType: text("employee_type", { 
-    enum: ["physiotherapist", "personal_trainer"] 
+    .references(() => users.id, { onDelete: "cascade" }),
+  employeeType: text("employee_type", {
+    enum: ["physiotherapist", "personal_trainer"],
   }).notNull(),
   createdAt: text("created_at").$default(() => new Date().toISOString()),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()),
@@ -94,16 +78,16 @@ export const reservations = sqliteTable("reservations", {
   clientName: text("client_name").notNull(),
   clientEmail: text("client_email").notNull(),
   clientPhone: text("client_phone").notNull(),
-  serviceType: text("service_type", { 
-    enum: ["physiotherapy", "personal_training", "other"] 
+  serviceType: text("service_type", {
+    enum: ["physiotherapy", "personal_training", "other"],
   }).notNull(),
   startTime: text("start_time").notNull(), // ISO string
   endTime: text("end_time").notNull(), // ISO string
   basePrice: real("base_price").notNull(),
   finalPrice: real("final_price").notNull(),
   isDeadHour: integer("is_dead_hour", { mode: "boolean" }).default(false),
-  status: text("status", { 
-    enum: ["confirmed", "cancelled", "completed"] 
+  status: text("status", {
+    enum: ["confirmed", "cancelled", "completed"],
   }).default("confirmed"),
   notes: text("notes"),
   createdAt: text("created_at").$default(() => new Date().toISOString()),
@@ -117,24 +101,26 @@ export const pricingConfig = sqliteTable("pricing_config", {
     .$defaultFn(() => uuidv4()),
   ownerId: text("owner_id")
     .notNull()
-    .references(() => profiles.id, { onDelete: "cascade" })
+    .references(() => users.id, { onDelete: "cascade" })
     .unique(),
   deadHoursStart: integer("dead_hours_start").notNull().default(8),
   deadHoursEnd: integer("dead_hours_end").notNull().default(16),
-  deadHourDiscount: real("dead_hour_discount").notNull().default(0.20),
+  deadHourDiscount: real("dead_hour_discount").notNull().default(0.2),
   baseRatePhysiotherapy: real("base_rate_physiotherapy").notNull().default(150),
-  baseRatePersonalTraining: real("base_rate_personal_training").notNull().default(120),
+  baseRatePersonalTraining: real("base_rate_personal_training")
+    .notNull()
+    .default(120),
   baseRateOther: real("base_rate_other").notNull().default(100),
-  weekdayMultiplier: real("weekday_multiplier").notNull().default(1.00),
-  weekendMultiplier: real("weekend_multiplier").notNull().default(1.20),
+  weekdayMultiplier: real("weekday_multiplier").notNull().default(1.0),
+  weekendMultiplier: real("weekend_multiplier").notNull().default(1.2),
   createdAt: text("created_at").$default(() => new Date().toISOString()),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()),
 });
 
 // Relations
-export const profilesRelations = relations(profiles, ({ one, many }) => ({
+export const profilesRelations = relations(users, ({ one, many }) => ({
   user: one(users, {
-    fields: [profiles.id],
+    fields: [users.id],
     references: [users.id],
   }),
   ownedLocations: many(locations),
@@ -143,9 +129,9 @@ export const profilesRelations = relations(profiles, ({ one, many }) => ({
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
-  owner: one(profiles, {
+  owner: one(users, {
     fields: [locations.ownerId],
-    references: [profiles.id],
+    references: [users.id],
   }),
   rooms: many(rooms),
   employeeLocations: many(employeeLocations),
@@ -160,24 +146,27 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
 }));
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
-  profile: one(profiles, {
+  profile: one(users, {
     fields: [employees.id],
-    references: [profiles.id],
+    references: [users.id],
   }),
   employeeLocations: many(employeeLocations),
   reservations: many(reservations),
 }));
 
-export const employeeLocationsRelations = relations(employeeLocations, ({ one }) => ({
-  employee: one(employees, {
-    fields: [employeeLocations.employeeId],
-    references: [employees.id],
-  }),
-  location: one(locations, {
-    fields: [employeeLocations.locationId],
-    references: [locations.id],
-  }),
-}));
+export const employeeLocationsRelations = relations(
+  employeeLocations,
+  ({ one }) => ({
+    employee: one(employees, {
+      fields: [employeeLocations.employeeId],
+      references: [employees.id],
+    }),
+    location: one(locations, {
+      fields: [employeeLocations.locationId],
+      references: [locations.id],
+    }),
+  })
+);
 
 export const reservationsRelations = relations(reservations, ({ one }) => ({
   employee: one(employees, {
@@ -191,8 +180,8 @@ export const reservationsRelations = relations(reservations, ({ one }) => ({
 }));
 
 export const pricingConfigRelations = relations(pricingConfig, ({ one }) => ({
-  owner: one(profiles, {
+  owner: one(users, {
     fields: [pricingConfig.ownerId],
-    references: [profiles.id],
+    references: [users.id],
   }),
 }));

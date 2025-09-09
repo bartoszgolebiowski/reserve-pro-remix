@@ -12,6 +12,9 @@ CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`email` text NOT NULL,
 	`password_hash` text NOT NULL,
+	`first_name` text NOT NULL,
+	`last_name` text NOT NULL,
+	`role` text DEFAULT 'client' NOT NULL,
 	`created_at` text,
 	`updated_at` text
 );
@@ -32,7 +35,7 @@ CREATE TABLE `employees` (
 	`employee_type` text NOT NULL,
 	`created_at` text,
 	`updated_at` text,
-	FOREIGN KEY (`id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `locations` (
@@ -43,7 +46,7 @@ CREATE TABLE `locations` (
 	`owner_id` text NOT NULL,
 	`created_at` text,
 	`updated_at` text,
-	FOREIGN KEY (`owner_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`owner_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `pricing_config` (
@@ -59,23 +62,10 @@ CREATE TABLE `pricing_config` (
 	`weekend_multiplier` real DEFAULT 1.2 NOT NULL,
 	`created_at` text,
 	`updated_at` text,
-	FOREIGN KEY (`owner_id`) REFERENCES `profiles`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`owner_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `pricing_config_owner_id_unique` ON `pricing_config` (`owner_id`);--> statement-breakpoint
-CREATE TABLE `profiles` (
-	`id` text PRIMARY KEY NOT NULL,
-	`email` text NOT NULL,
-	`first_name` text NOT NULL,
-	`last_name` text NOT NULL,
-	`role` text DEFAULT 'client' NOT NULL,
-	`phone` text,
-	`created_at` text,
-	`updated_at` text,
-	FOREIGN KEY (`id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `profiles_email_unique` ON `profiles` (`email`);--> statement-breakpoint
 CREATE TABLE `reservations` (
 	`id` text PRIMARY KEY NOT NULL,
 	`employee_id` text NOT NULL,
