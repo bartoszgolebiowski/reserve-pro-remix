@@ -1,0 +1,135 @@
+/**
+ * Repozytorium użytkowników - dostęp do tabeli users
+ */
+import { eq } from "drizzle-orm";
+import { type DrizzleDatabase } from "~/db/index";
+import { users } from "~/db/schema/auth";
+
+export type UserRole = "OWNER" | "WORKER";
+export type UserStatus = "pending" | "active" | "blocked";
+
+export type CreateUserData = {
+  email: string;
+  passwordHash: string;
+  role: UserRole;
+  status?: UserStatus;
+  isActive?: boolean;
+  metadata?: Record<string, any>;
+};
+
+export type UpdateUserData = Partial<{
+  status: UserStatus;
+  isActive: boolean;
+  passwordHash: string;
+  failedLoginCount: number;
+  lockedUntil: string | null;
+  lastLoginAt: string;
+  requirePasswordChange: boolean;
+  metadata: Record<string, any>;
+}>;
+
+/**
+ * Klasa repozytorium użytkowników
+ */
+export class UsersRepository {
+  private db: DrizzleDatabase;
+
+  constructor(db: DrizzleDatabase) {
+    this.db = db;
+  }
+
+  /**
+   * Znajdź użytkownika po adresie e-mail (znormalizowanym)
+   */
+  async findUserByEmail(email: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Znajdź użytkownika po id
+   */
+  async findUserById(id: string) {
+    const rows = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Stwórz nowego użytkownika
+   */
+  async createUser(data: CreateUserData) {
+    const normalizedEmail = data.email.toLowerCase().trim();
+
+    const result = await this.db
+      .insert(users)
+      .values({
+        email: normalizedEmail,
+        passwordHash: data.passwordHash,
+        role: data.role,
+        status: data.status || "pending",
+        isActive: data.isActive || false,
+        metadata: data.metadata || {},
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  /**
+   * Aktualizuj użytkownika
+   */
+  async updateUser(id: string, data: UpdateUserData) {
+    // Normalize date fields to ISO strings for SQLite
+    const payload: any = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (payload.lockedUntil && payload.lockedUntil instanceof Date)
+      payload.lockedUntil = payload.lockedUntil.toISOString();
+    if (payload.lastLoginAt && payload.lastLoginAt instanceof Date)
+      payload.lastLoginAt = payload.lastLoginAt.toISOString();
+
+    const result = await this.db
+      .update(users)
+      .set(payload)
+      .where(eq(users.id, id))
+      .returning();
+
+    return result[0];
+  }
+
+  /**
+   * Sprawdź czy adres e-mail jest już zajęty
+   */
+  async isEmailTaken(email: string): Promise<boolean> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await this.findUserByEmail(normalizedEmail);
+    return !!user;
+  }
+
+  /**
+   * Usuń użytkownika (soft delete)
+   */
+  async deleteUser(id: string) {
+    const result = await this.db
+      .update(users)
+      .set({
+        isActive: false,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+
+    return result[0];
+  }
+}
