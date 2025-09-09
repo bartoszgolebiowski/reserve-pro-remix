@@ -37,6 +37,8 @@ export async function action({ request }: ActionFunctionArgs) {
   const password = formData.get("password")?.toString() || "";
   const passwordConfirm = formData.get("passwordConfirm")?.toString() || "";
   const role = formData.get("role")?.toString() || "";
+  const firstName = formData.get("firstName")?.toString() || "";
+  const lastName = formData.get("lastName")?.toString() || "";
 
   // Wywołanie logiki rejestracji
   const result = await authContainer.registrationService.registerUser({
@@ -44,11 +46,13 @@ export async function action({ request }: ActionFunctionArgs) {
     password,
     passwordConfirm,
     role,
+    firstName,
+    lastName,
   });
 
   // Jeśli rejestracja zakończyła się sukcesem, przekieruj na stronę sukcesu
   if (result.success) {
-    throw redirect("/auth/register/success");
+    throw redirect("/auth/register/success", result.responseInit);
   }
 
   // W przypadku błędu, zwróć błędy do formularza
@@ -110,6 +114,44 @@ export default function RegisterPage() {
               {actionData?.errors?.email ? (
                 <p className="text-red-500 text-xs mt-1">
                   {actionData.errors.email}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <label htmlFor="firstName" className="sr-only">
+                Imię
+              </label>
+              <input
+                id="firstName"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Imię"
+              />
+              {actionData?.errors?.firstName ? (
+                <p className="text-red-500 text-xs mt-1">
+                  {actionData.errors.firstName}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <label htmlFor="lastName" className="sr-only">
+                Nazwisko
+              </label>
+              <input
+                id="lastName"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                required
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                placeholder="Nazwisko"
+              />
+              {actionData?.errors?.lastName ? (
+                <p className="text-red-500 text-xs mt-1">
+                  {actionData.errors.lastName}
                 </p>
               ) : null}
             </div>

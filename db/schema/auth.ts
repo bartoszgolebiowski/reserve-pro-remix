@@ -12,6 +12,9 @@ export const users = sqliteTable("users", {
     .$defaultFn(() => uuidv4()),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  role: text("role").default("client").notNull(), // owner, employee, client
   createdAt: text("created_at").$default(() => new Date().toISOString()),
   updatedAt: text("updated_at").$default(() => new Date().toISOString()),
 });

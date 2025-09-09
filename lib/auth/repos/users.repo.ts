@@ -12,14 +12,15 @@ export type CreateUserData = {
   email: string;
   passwordHash: string;
   role: UserRole;
-  status?: UserStatus;
-  isActive?: boolean;
+  firstName?: string;
+  lastName?: string;
 };
 
 export type UpdateUserData = Partial<{
-  status: UserStatus;
-  isActive: boolean;
   passwordHash: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
 }>;
 
 /**
@@ -69,8 +70,8 @@ export class UsersRepository {
         email: normalizedEmail,
         passwordHash: data.passwordHash,
         role: data.role,
-        status: data.status || "active",
-        isActive: data.isActive || false,
+        firstName: data.firstName,
+        lastName: data.lastName,
       })
       .returning();
 
@@ -112,7 +113,6 @@ export class UsersRepository {
     const result = await this.db
       .update(users)
       .set({
-        isActive: false,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(users.id, id))

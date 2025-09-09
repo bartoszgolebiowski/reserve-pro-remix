@@ -7,14 +7,6 @@ import { SecurityService } from "./security.server";
 import { SessionService } from "./session.service";
 import { AuthValidators } from "./validators.server";
 
-export type RegistrationResult = {
-  success: boolean;
-  userId?: string;
-  errors?: Record<string, string>;
-  message?: string;
-  responseInit?: ResponseInit;
-};
-
 export class RegistrationService {
   constructor(
     private usersRepo: UsersRepository,
@@ -26,7 +18,7 @@ export class RegistrationService {
   /**
    * Register new user and automatically log them in
    */
-  async registerUser(formData: RegisterFormData): Promise<RegistrationResult> {
+  async registerUser(formData: RegisterFormData) {
     // Validate form data
     const errors = this.authValidators.validateRegistrationForm(formData);
     if (Object.keys(errors).length > 0) {
@@ -60,19 +52,23 @@ export class RegistrationService {
         email: normalizedEmail,
         passwordHash,
         role: formData.role as any,
-        status: "active",
-        isActive: true,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
       });
 
       // Automatically create session for the new user
       const sessionToken = await this.sessionService.createSession(user.id);
-      
+
       // Set cookie
-      const responseInit = await this.sessionService.setSessionCookie(sessionToken);
+      const responseInit =
+        await this.sessionService.setSessionCookie(sessionToken);
 
       return {
         success: true,
-        userId: user.id,
+        user: {
+          ...user,
+          passwordHash: undefined,
+        },
         message: "Account created successfully. You are now logged in.",
         responseInit,
       };
@@ -81,7 +77,8 @@ export class RegistrationService {
       return {
         success: false,
         errors: {
-          _form: "An error occurred during registration. Please try again later.",
+          _form:
+            "An error occurred during registration. Please try again later.",
         },
       };
     }

@@ -12,4 +12,6 @@ export type RegisterFormData = {
   password: string;
   passwordConfirm: string;
   role: string;
+  firstName: string;
+  lastName: string;
 };

@@ -11,6 +11,17 @@ import {
 } from "react-router";
 import { authContainer } from "~/lib/auth/container";
 
+const redirectByRole = (role: string) => {
+  switch (role) {
+    case "OWNER":
+      return "/dashboard/owner";
+    case "WORKER":
+      return "/dashboard/employee";
+    default:
+      return "/";
+  }
+};
+
 /**
  * Loader - sprawdza czy użytkownik jest już zalogowany
  */
@@ -20,8 +31,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // Jeśli zalogowany, przekieruj na stronę główną lub na stronę, z której przyszedł
   if (session?.user) {
-    const url = new URL(request.url);
-    const redirectTo = url.searchParams.get("redirectTo") || "/";
+    const redirectTo = redirectByRole(session.user.role);
     return redirect(redirectTo);
   }
 
@@ -37,7 +47,6 @@ export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get("email")?.toString() || "";
   const password = formData.get("password")?.toString() || "";
-  const redirectTo = formData.get("redirectTo")?.toString() || "/";
 
   // Wywołanie logiki logowania
   const result = await authContainer.loginService.loginUser({
@@ -47,6 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // Utworzenie odpowiedzi (przekierowanie lub błędy)
   if (result.success) {
+    const redirectTo = redirectByRole(result.user!.role);
     throw redirect(redirectTo, result.responseInit);
   }
 
@@ -61,7 +71,6 @@ export default function LoginPage() {
   const navigation = useNavigation();
   const [searchParams] = useSearchParams();
 
-  const redirectTo = searchParams.get("redirectTo") || "/";
   const isSubmitting = navigation.state === "submitting";
 
   return (
@@ -92,8 +101,6 @@ export default function LoginPage() {
               </div>
             </div>
           ) : null}
-
-          <input type="hidden" name="redirectTo" value={redirectTo} />
 
           <div className="rounded-md shadow-sm -space-y-px">
             <div>

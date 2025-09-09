@@ -39,7 +39,8 @@ export class SessionService {
       return null;
     }
 
-    const sessionWithUser = await this.sessionsRepo.findSessionWithUserByToken(sessionToken);
+    const sessionWithUser =
+      await this.sessionsRepo.findSessionWithUserByToken(sessionToken);
 
     if (!sessionWithUser) {
       return null;
@@ -52,7 +53,11 @@ export class SessionService {
     }
 
     return {
-      user: sessionWithUser.user,
+      user: {
+        ...sessionWithUser.user,
+        // Exclude sensitive fields
+        passwordHash: undefined,
+      },
       sessionId: sessionWithUser.id,
     };
   }

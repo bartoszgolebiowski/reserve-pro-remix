@@ -1,12 +1,8 @@
 /**
  * Simplified form validators
  */
-import type { InferModel } from "drizzle-orm";
 import { z } from "zod";
-import { users } from "~/db/schema/auth";
 import { env } from "~/lib/env";
-
-export type User = InferModel<typeof users>;
 
 export class AuthValidators {
   private readonly emailSchema: z.ZodTypeAny;
@@ -55,6 +51,8 @@ export class AuthValidators {
     password: string;
     passwordConfirm: string;
     role: string;
+    firstName: string;
+    lastName: string;
   }) {
     const errors: Record<string, string> = {};
 
@@ -82,6 +80,18 @@ export class AuthValidators {
       errors.role = "Role is required";
     } else if (!["OWNER", "WORKER"].includes(data.role)) {
       errors.role = "Invalid role. Available roles: OWNER, WORKER";
+    }
+
+    if (!data.firstName?.trim()) {
+      errors.firstName = "First name is required";
+    } else if (data.firstName.trim().length < 2) {
+      errors.firstName = "First name must be at least 2 characters";
+    }
+
+    if (!data.lastName?.trim()) {
+      errors.lastName = "Last name is required";
+    } else if (data.lastName.trim().length < 2) {
+      errors.lastName = "Last name must be at least 2 characters";
     }
 
     return errors;

@@ -1,8 +1,14 @@
-import type { LoaderFunctionArgs } from "react-router";
+import {
+  Outlet,
+  redirect,
+  useLoaderData,
+  type LoaderFunctionArgs,
+  type MetaArgs,
+} from "react-router";
 import { authContainer } from "~/lib/auth/container";
-import type { Route } from "./+types/home";
+import { Layout } from "../components/Layout";
 
-export function meta({}: Route.MetaArgs) {
+export function meta({}: MetaArgs) {
   return [
     { title: "New React Router App" },
     { name: "description", content: "Welcome to React Router!" },
@@ -13,43 +19,28 @@ export function meta({}: Route.MetaArgs) {
  * Loader - sprawdza status logowania użytkownika
  */
 export async function loader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  const pathname = url.pathname;
+  // Jeśli użytkownik jest na stronie głównej, przekieruj go do logowania, które to przekieruje go na odpowiednią stronę
+  if (pathname === "/") {
+    return redirect("/auth/login");
+  }
   // Sprawdzenie czy użytkownik jest zalogowany
   const session = await authContainer.sessionService.getSession(request);
 
   return { session };
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export default function Home() {
+  const loaderData = useLoaderData<typeof loader>();
   const { session } = loaderData;
 
   if (session?.user) {
     // Użytkownik jest zalogowany
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg
-              className="h-6 w-6 text-green-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Jesteś zalogowany!
-          </h2>
-          <p className="text-gray-600">
-            Witaj, {session.user.email}! Możesz korzystać z aplikacji.
-          </p>
-        </div>
-      </div>
+      <Layout user={session.user}>
+        <Outlet />
+      </Layout>
     );
   }
 

@@ -47,16 +47,6 @@ export class LoginService {
         };
       }
 
-      // Check if account is active
-      if (!user.isActive || user.status !== "active") {
-        return {
-          success: false,
-          errors: {
-            _form: "This account is not activated. Contact administrator.",
-          },
-        };
-      }
-
       // Verify password
       const isPasswordValid = await this.securityService.verifyPassword(
         formData.password,
@@ -81,7 +71,10 @@ export class LoginService {
 
       return {
         success: true,
-        userId: user.id,
+        user: {
+          ...user,
+          passwordHash: undefined,
+        },
         message: "Login successful",
         responseInit,
       };
