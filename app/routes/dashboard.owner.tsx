@@ -63,8 +63,11 @@ export default function OwnerDashboard() {
           </div>
         </Link>
 
-        {/* Rezerwacje */}
-        <div className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
+        {/* Zarządzanie rezerwacjami */}
+        <Link
+          to="/dashboard/owner/reservations"
+          className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+        >
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-purple-100 rounded-lg">
               <Calendar className="w-6 h-6 text-purple-600" />
@@ -73,10 +76,12 @@ export default function OwnerDashboard() {
               <h3 className="text-lg font-semibold text-gray-900">
                 Rezerwacje
               </h3>
-              <p className="text-gray-600 text-sm">Wkrótce dostępne</p>
+              <p className="text-gray-600 text-sm">
+                Twórz i zarządzaj rezerwacjami
+              </p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />

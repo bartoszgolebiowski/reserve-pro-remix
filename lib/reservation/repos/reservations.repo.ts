@@ -1,6 +1,6 @@
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gt, gte, lt, lte, ne, or } from "drizzle-orm";
 import type { DrizzleDatabase } from "~/db/index";
-import { reservations } from "~/db/schema/reservations";
+import { locations, reservations, rooms } from "~/db/schema/reservations";
 import type { Reservation } from "~/lib/types";
 
 export class ReservationsRepository {
@@ -157,6 +157,78 @@ export class ReservationsRepository {
       .returning({ id: reservations.id });
 
     return result.length > 0;
+  }
+
+  /**
+   * Pobiera rezerwacje dla właściciela przez jego lokalizacje
+   * @param ownerId - ID właściciela
+   * @returns Lista rezerwacji
+   */
+  async getReservationsByOwnerId(ownerId: string) {
+    const results = await this.db
+      .select({
+        reservation: reservations,
+        room: {
+          id: rooms.id,
+          name: rooms.name,
+          locationId: rooms.locationId,
+        },
+        location: {
+          id: locations.id,
+          name: locations.name,
+          ownerId: locations.ownerId,
+        },
+      })
+      .from(reservations)
+      .innerJoin(rooms, eq(reservations.roomId, rooms.id))
+      .innerJoin(locations, eq(rooms.locationId, locations.id))
+      .where(eq(locations.ownerId, ownerId));
+
+    return results.map(result => this.mapDbReservationToReservation(result.reservation));
+  }
+
+  /**
+   * Sprawdza dostępność pracownika w danym terminie
+   * @param employeeId - ID pracownika
+   * @param startTime - Czas rozpoczęcia
+   * @param endTime - Czas zakończenia
+   * @returns Czy pracownik jest dostępny
+   */
+  async checkEmployeeAvailability(
+    employeeId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<boolean> {
+    const startISOString = startTime.toISOString();
+    const endISOString = endTime.toISOString();
+
+    const conflictingReservations = await this.db
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.employeeId, employeeId),
+          or(
+            // Sprawdź różne scenariusze nakładania się czasów
+            and(
+              lte(reservations.startTime, startISOString),
+              gt(reservations.endTime, startISOString)
+            ),
+            and(
+              lt(reservations.startTime, endISOString),
+              gte(reservations.endTime, endISOString)
+            ),
+            and(
+              gte(reservations.startTime, startISOString),
+              lt(reservations.endTime, endISOString)
+            )
+          ),
+          // Tylko potwierdzone rezerwacje
+          ne(reservations.status, "cancelled")
+        )
+      );
+
+    return conflictingReservations.length === 0;
   }
 
   /**

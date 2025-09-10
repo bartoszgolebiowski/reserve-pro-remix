@@ -132,3 +132,36 @@ export type PricingConfigFormData = {
   weekdayMultiplier: number;
   weekendMultiplier: number;
 };
+
+// Owner reservation types
+export type OwnerReservationFormData = {
+  locationId: string;
+  roomId: string;
+  employeeId: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  serviceType: "physiotherapy" | "personal_training" | "other";
+  startTime: Date;
+  endTime: Date;
+  notes?: string;
+};
+
+export type ReservationWizardStep = 
+  | "location" 
+  | "room" 
+  | "employee" 
+  | "details" 
+  | "summary";
+
+export type AvailabilitySlot = {
+  startTime: Date;
+  endTime: Date;
+  isAvailable: boolean;
+  employeeId?: string;
+};
+
+export type ValidationResult = {
+  isValid: boolean;
+  errors: string[];
+};

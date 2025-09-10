@@ -7,6 +7,7 @@ import { LocationsRepository } from "./repos/locations.repo";
 import { PricingRepository } from "./repos/pricing.repo";
 import { ReservationsRepository } from "./repos/reservations.repo";
 import { RoomsRepository } from "./repos/rooms.repo";
+import { AvailabilityService } from "./services/availability.service";
 import { PricingService } from "./services/pricing.service";
 import { ReservationService } from "./services/reservation.service";
 
@@ -21,6 +22,7 @@ class ReservationServiceContainer {
   // Services
   private _pricingService: PricingService | null = null;
   private _reservationService: ReservationService | null = null;
+  private _availabilityService: AvailabilityService | null = null;
 
   get employeesRepo(): EmployeesRepository {
     if (!this._employeesRepo) {
@@ -57,6 +59,16 @@ class ReservationServiceContainer {
     return this._roomsRepo;
   }
 
+  get availabilityService(): AvailabilityService {
+    if (!this._availabilityService) {
+      this._availabilityService = new AvailabilityService(
+        this.reservationsRepo,
+        this.employeesRepo
+      );
+    }
+    return this._availabilityService;
+  }
+
   get pricingService(): PricingService {
     if (!this._pricingService) {
       this._pricingService = new PricingService(this.pricingRepo);
@@ -66,9 +78,21 @@ class ReservationServiceContainer {
 
   get reservationService(): ReservationService {
     if (!this._reservationService) {
-      this._reservationService = new ReservationService(this.reservationsRepo);
+      this._reservationService = new ReservationService(
+        this.reservationsRepo,
+        this.availabilityService,
+        this.employeesRepo,
+        this.roomsRepo
+      );
     }
     return this._reservationService;
+  }
+
+  /**
+   * Enhanced reservation service with all dependencies for owner operations
+   */
+  get ownerReservationService(): ReservationService {
+    return this.reservationService;
   }
 }
 

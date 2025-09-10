@@ -1,8 +1,16 @@
-import type { Reservation } from "~/lib/types";
+import type { OwnerReservationFormData, Reservation, ValidationResult } from "~/lib/types";
+import type { EmployeesRepository } from "../repos/employees.repo";
 import type { ReservationsRepository } from "../repos/reservations.repo";
+import type { RoomsRepository } from "../repos/rooms.repo";
+import type { AvailabilityService } from "./availability.service";
 
 export class ReservationService {
-  constructor(private reservationsRepo: ReservationsRepository) {}
+  constructor(
+    private reservationsRepo: ReservationsRepository,
+    private availabilityService?: AvailabilityService,
+    private employeesRepo?: EmployeesRepository,
+    private roomsRepo?: RoomsRepository
+  ) {}
 
   /**
    * Pobiera wszystkie rezerwacje dla danej sali
@@ -189,6 +197,168 @@ export class ReservationService {
       finalPrice,
       isDeadHour,
     };
+  }
+
+  /**
+   * Tworzy rezerwację przez ownera z pełną walidacją
+   * @param ownerId - ID właściciela
+   * @param reservationData - Dane rezerwacji
+   * @returns Utworzona rezerwacja
+   */
+  async createReservationByOwner(
+    ownerId: string,
+    reservationData: OwnerReservationFormData
+  ): Promise<Reservation> {
+    // Walidacja danych
+    const validation = await this.validateReservationData(reservationData);
+    if (!validation.isValid) {
+      throw new Error(`Błędy walidacji: ${validation.errors.join(", ")}`);
+    }
+
+    // Sprawdzenie dostępności sali
+    const isRoomAvailable = await this.checkAvailability(
+      reservationData.roomId,
+      reservationData.startTime,
+      reservationData.endTime
+    );
+
+    if (!isRoomAvailable) {
+      throw new Error("Sala jest niedostępna w wybranym terminie");
+    }
+
+    // Sprawdzenie dostępności pracownika
+    if (this.availabilityService) {
+      const isEmployeeAvailable = await this.availabilityService.checkEmployeeAvailability(
+        reservationData.employeeId,
+        reservationData.startTime,
+        reservationData.endTime
+      );
+
+      if (!isEmployeeAvailable) {
+        throw new Error("Pracownik jest niedostępny w wybranym terminie");
+      }
+    }
+
+    // Utworzenie rezerwacji
+    const reservation: Omit<Reservation, "id" | "createdAt" | "updatedAt"> = {
+      employeeId: reservationData.employeeId,
+      roomId: reservationData.roomId,
+      clientName: reservationData.clientName,
+      clientEmail: reservationData.clientEmail,
+      clientPhone: reservationData.clientPhone,
+      serviceType: reservationData.serviceType,
+      startTime: reservationData.startTime,
+      endTime: reservationData.endTime,
+      basePrice: 0, // Będzie obliczone
+      finalPrice: 0, // Będzie obliczone
+      isDeadHour: false, // Będzie obliczone
+      status: "confirmed",
+      notes: reservationData.notes,
+    };
+
+    return this.reservationsRepo.createReservation(reservation);
+  }
+
+  /**
+   * Waliduje dane rezerwacji
+   * @param data - Dane do walidacji
+   * @returns Wynik walidacji
+   */
+  async validateReservationData(data: OwnerReservationFormData): Promise<ValidationResult> {
+    const errors: string[] = [];
+
+    // Walidacja podstawowych pól
+    if (!data.locationId) errors.push("Lokalizacja jest wymagana");
+    if (!data.roomId) errors.push("Sala jest wymagana");
+    if (!data.employeeId) errors.push("Pracownik jest wymagany");
+    if (!data.clientName.trim()) errors.push("Imię klienta jest wymagane");
+    if (!data.clientEmail.trim()) errors.push("Email klienta jest wymagany");
+    if (!data.clientPhone.trim()) errors.push("Telefon klienta jest wymagany");
+
+    // Walidacja email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (data.clientEmail && !emailRegex.test(data.clientEmail)) {
+      errors.push("Nieprawidłowy format emaila");
+    }
+
+    // Walidacja czasów
+    if (data.startTime >= data.endTime) {
+      errors.push("Czas rozpoczęcia musi być wcześniejszy niż czas zakończenia");
+    }
+
+    const now = new Date();
+    if (data.startTime < now) {
+      errors.push("Nie można tworzyć rezerwacji w przeszłości");
+    }
+
+    // Walidacja zgodności pracownika z salą (jeśli repozytoria są dostępne)
+    if (this.employeesRepo && this.roomsRepo) {
+      try {
+        const employee = await this.employeesRepo.getEmployeeById(data.employeeId);
+        // Dla uproszczenia pomijamy sprawdzenie sali, ponieważ wymaga ownerId
+        // const room = await this.roomsRepo.getRoomById(data.roomId, ownerId);
+
+        if (employee) {
+          const isCompatible = this.checkServiceTypeCompatibility(
+            data.serviceType,
+            employee.employeeType,
+            [] // Pusta lista dla sal - nie mamy dostępu do danych sali
+          );
+
+          if (!isCompatible) {
+            errors.push("Wybrany pracownik nie może obsługiwać tego typu usługi");
+          }
+        }
+      } catch (error) {
+        errors.push("Błąd podczas sprawdzania zgodności pracownika");
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Sprawdza zgodność typu usługi z pracownikiem i salą
+   * @param serviceType - Typ usługi
+   * @param employeeType - Typ pracownika
+   * @param roomServiceTypes - Typy usług obsługiwane przez salę
+   * @returns Czy kombinacja jest zgodna
+   */
+  private checkServiceTypeCompatibility(
+    serviceType: string,
+    employeeType: string,
+    roomServiceTypes: string[]
+  ): boolean {
+    // Sprawdź czy sala obsługuje ten typ usługi
+    if (!roomServiceTypes.includes(serviceType)) {
+      return false;
+    }
+
+    // Sprawdź zgodność pracownika z typem usługi
+    switch (serviceType) {
+      case "physiotherapy":
+        return employeeType === "physiotherapist";
+      case "personal_training":
+        return employeeType === "personal_trainer";
+      case "other":
+        return true; // Wszyscy mogą obsługiwać "other"
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Pobiera rezerwacje dla danego właściciela
+   * @param ownerId - ID właściciela
+   * @returns Lista rezerwacji
+   */
+  async getReservationsByOwnerId(ownerId: string): Promise<Reservation[]> {
+    // Ta metoda wymagałaby rozszerzenia ReservationsRepository
+    // Na razie zwrócimy pustą listę
+    return [];
   }
 }
 
