@@ -15,6 +15,9 @@ export default [
           ]
         ),
       ]),
+      route("employees", "routes/dashboard.owner.employees.tsx", [
+        route(":employeeId/schedule", "routes/dashboard.owner.employees.$employeeId.schedule.tsx"),
+      ]),
     ]),
     route("dashboard/employee", "routes/dashboard.employee.tsx"),
   ]),

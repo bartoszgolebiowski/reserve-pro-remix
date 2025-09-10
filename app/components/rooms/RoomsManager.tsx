@@ -189,7 +189,7 @@ export function RoomsManager({ locationId, rooms }: RoomsManagerProps) {
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => selectRoom(room)}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
                 >
                   <Calendar className="w-4 h-4" />
                   <span>Zobacz obłożenie</span>

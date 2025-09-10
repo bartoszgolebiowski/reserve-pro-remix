@@ -44,7 +44,10 @@ export default function OwnerDashboard() {
         </Link>
 
         {/* Zarządzanie pracownikami */}
-        <div className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
+        <Link
+          to="/dashboard/owner/employees"
+          className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+        >
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-green-100 rounded-lg">
               <Users className="w-6 h-6 text-green-600" />
@@ -53,10 +56,12 @@ export default function OwnerDashboard() {
               <h3 className="text-lg font-semibold text-gray-900">
                 Pracownicy
               </h3>
-              <p className="text-gray-600 text-sm">Wkrótce dostępne</p>
+              <p className="text-gray-600 text-sm">
+                Zarządzaj zespołem pracowników
+              </p>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Rezerwacje */}
         <div className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
@@ -73,8 +78,9 @@ export default function OwnerDashboard() {
           </div>
         </div>
       </div>
-
-      <Outlet />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Outlet />
+      </div>
     </div>
   );
 }

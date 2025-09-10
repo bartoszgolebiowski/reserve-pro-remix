@@ -1,29 +1,46 @@
 import {
-  Calendar,
-  Clock,
-  DollarSign,
-  FileText,
-  Mail,
-  Phone,
-  User,
+    Calendar,
+    Clock,
+    DollarSign,
+    FileText,
+    Mail,
+    MapPin,
+    Phone,
+    User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Employee, Reservation, Room } from "~/lib/types";
+import type { EmployeeWithLocations, Location } from "~/lib/employee/types/employee.types";
 
-interface RoomOccupancyViewProps {
-  room: Room;
-  locationName: string;
+// TODO: Import proper types when available
+interface Reservation {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  serviceType: "physiotherapy" | "personal_training" | "other";
+  status: "confirmed" | "completed" | "cancelled";
+  finalPrice: number;
+  isDeadHour?: boolean;
+  notes?: string;
+  locationId: string;
+  roomId?: string;
+  roomName?: string;
+}
+
+interface EmployeeScheduleViewProps {
+  employee: EmployeeWithLocations;
   reservations: Reservation[];
-  employees: Employee[];
+  locations: Location[];
   onBack?: () => void;
 }
 
-export function RoomOccupancyView({
-  room,
-  locationName,
+export function EmployeeScheduleView({
+  employee,
   reservations,
-  employees,
-}: RoomOccupancyViewProps) {
+  locations,
+}: EmployeeScheduleViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState<Date[]>([]);
   const [viewDay, setViewDay] = useState<Date>(new Date()); // Day selected for detailed view
@@ -57,23 +74,20 @@ export function RoomOccupancyView({
     }
   }, [weekDates]);
 
-  const getRoomReservations = (date: Date) => {
+  const getEmployeeReservations = (date: Date) => {
     const dateStr = date.toDateString();
     return reservations
       .filter(
         (reservation) =>
-          reservation.roomId === room.id &&
           reservation.startTime.toDateString() === dateStr &&
           reservation.status !== "cancelled"
       )
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   };
 
-  const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find((emp) => emp.id === employeeId);
-    return employee
-      ? `${employee.firstName} ${employee.lastName}`
-      : "Nieznany pracownik";
+  const getLocationName = (locationId: string) => {
+    const location = locations.find((loc) => loc.id === locationId);
+    return location ? location.name : "Nieznana lokalizacja";
   };
 
   const formatTime = (date: Date) => {
@@ -109,6 +123,10 @@ export function RoomOccupancyView({
     return map[type] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
+  const getEmployeeTypeDisplay = (type: string) => {
+    return type === 'physiotherapist' ? 'Fizjoterapeuta' : 'Trener personalny';
+  };
+
   const navigateWeek = (direction: "prev" | "next") => {
     const newDate = new Date(selectedDate);
     newDate.setDate(selectedDate.getDate() + (direction === "next" ? 7 : -7));
@@ -129,23 +147,68 @@ export function RoomOccupancyView({
     setShowAllWeek(!showAllWeek);
   };
 
+  // Calculate weekly stats
+  const weeklyReservations = weekDates.flatMap(date => getEmployeeReservations(date));
+  const weeklyEarnings = weeklyReservations.reduce((sum, res) => sum + res.finalPrice, 0);
+  const weeklyHours = weeklyReservations.reduce((sum, res) => {
+    const duration = (res.endTime.getTime() - res.startTime.getTime()) / (1000 * 60 * 60);
+    return sum + duration;
+  }, 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          <div className="p-3 bg-teal-100 rounded-lg">
+            <User className="w-6 h-6 text-teal-600" />
+          </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{room.name}</h2>
-            <p className="text-gray-600">{locationName} • Obłożenie sali</p>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {employee.firstName} {employee.lastName}
+            </h2>
+            <p className="text-gray-600">
+              {getEmployeeTypeDisplay(employee.employeeType)} • Harmonogram pracy
+            </p>
           </div>
         </div>
 
-        <button
-          onClick={goToToday}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Dzisiaj
-        </button>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <div className="text-sm text-gray-600">Ten tydzień</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {weeklyEarnings.toFixed(2)} zł
+            </div>
+            <div className="text-xs text-gray-500">
+              {weeklyHours.toFixed(1)}h • {weeklyReservations.length} wizyt
+            </div>
+          </div>
+          <button
+            onClick={goToToday}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Dzisiaj
+          </button>
+        </div>
+      </div>
+
+      {/* Employee Locations Info */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Lokalizacje i stawki:</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {employee.locations.map(location => (
+            <div key={location.locationId} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-medium">{location.locationName}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <DollarSign className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-semibold text-green-600">{location.hourlyRate} zł/h</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Week Navigation */}
@@ -175,9 +238,10 @@ export function RoomOccupancyView({
         {/* Week Calendar */}
         <div className="grid grid-cols-7 gap-4">
           {weekDates.map((date, index) => {
-            const dayReservations = getRoomReservations(date);
+            const dayReservations = getEmployeeReservations(date);
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
             const isSelected = date.toDateString() === viewDay.toDateString();
+            const dayEarnings = dayReservations.reduce((sum, res) => sum + res.finalPrice, 0);
 
             return (
               <div
@@ -208,12 +272,17 @@ export function RoomOccupancyView({
                   >
                     {date.getDate()}
                   </div>
+                  {dayEarnings > 0 && (
+                    <div className="text-xs text-green-600 font-medium mt-1">
+                      {dayEarnings.toFixed(0)} zł
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   {dayReservations.length === 0 ? (
                     <div className="text-xs text-gray-500 text-center py-4">
-                      Brak rezerwacji
+                      Brak wizyt
                     </div>
                   ) : (
                     dayReservations.map((reservation) => (
@@ -226,12 +295,12 @@ export function RoomOccupancyView({
                           {formatTime(reservation.endTime)}
                         </div>
                         <div className="text-gray-700 mb-1">
-                          {getEmployeeName(reservation.employeeId)}
-                        </div>
-                        <div className="text-gray-600">
                           {reservation.clientName}
                         </div>
-                        <div className="text-gray-500 mt-1">
+                        <div className="text-gray-600 mb-1">
+                          {getLocationName(reservation.locationId)}
+                        </div>
+                        <div className="text-gray-500">
                           {getServiceTypeDisplay(reservation.serviceType)}
                         </div>
                       </div>
@@ -249,12 +318,12 @@ export function RoomOccupancyView({
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              Szczegóły rezerwacji
+              Szczegóły wizyt
             </h3>
             <p className="text-gray-600">
               {showAllWeek
-                ? "Wszystkie rezerwacje w bieżącym tygodniu"
-                : `Rezerwacje na ${formatDate(viewDay)}`}
+                ? "Wszystkie wizyty w bieżącym tygodniu"
+                : `Wizyty na ${formatDate(viewDay)}`}
             </p>
           </div>
           <button
@@ -267,7 +336,7 @@ export function RoomOccupancyView({
 
         <div className="divide-y divide-gray-200">
           {(showAllWeek ? weekDates : [viewDay]).map((date) => {
-            const dayReservations = getRoomReservations(date);
+            const dayReservations = getEmployeeReservations(date);
 
             if (dayReservations.length === 0) {
               // Only show empty state message for the selected day in single day view
@@ -275,7 +344,7 @@ export function RoomOccupancyView({
                 return (
                   <div key={date.toISOString()} className="p-6 text-center">
                     <p className="text-gray-500 py-8">
-                      Brak rezerwacji na ten dzień
+                      Brak wizyt na ten dzień
                     </p>
                   </div>
                 );
@@ -305,11 +374,14 @@ export function RoomOccupancyView({
                             </span>
                           </div>
                           <div className="flex items-center space-x-2 mb-2">
-                            <User className="w-4 h-4 text-gray-500" />
-                            <span>
-                              {getEmployeeName(reservation.employeeId)}
-                            </span>
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            <span>{getLocationName(reservation.locationId)}</span>
                           </div>
+                          {reservation.roomName && (
+                            <div className="text-sm text-gray-600 mb-2">
+                              Sala: {reservation.roomName}
+                            </div>
+                          )}
                           <div
                             className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getServiceTypeColor(reservation.serviceType)}`}
                           >
@@ -377,14 +449,14 @@ export function RoomOccupancyView({
           })}
         </div>
 
-        {weekDates.every((date) => getRoomReservations(date).length === 0) && (
+        {weekDates.every((date) => getEmployeeReservations(date).length === 0) && (
           <div className="p-12 text-center">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Brak rezerwacji
+              Brak wizyt
             </h3>
             <p className="text-gray-600">
-              W tym tygodniu nie ma żadnych rezerwacji dla tej sali
+              W tym tygodniu {employee.firstName} nie ma żadnych zaplanowanych wizyt
             </p>
           </div>
         )}

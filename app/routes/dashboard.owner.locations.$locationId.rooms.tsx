@@ -141,8 +141,8 @@ export default function LocationRoomsRoute() {
 
   return (
     <div>
-      <RoomsManager locationId={locationId} rooms={rooms} />
       <hr className="my-8" />
+      <RoomsManager locationId={locationId} rooms={rooms} />
       <Outlet />
     </div>
   );

@@ -147,10 +147,10 @@ export default function OwnerLocationsPage() {
   const { locations } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <LocationsManager locations={locations} />
+    <>
       <hr className="my-8" />
+      <LocationsManager locations={locations} />
       <Outlet />
-    </div>
+    </>
   );
 }

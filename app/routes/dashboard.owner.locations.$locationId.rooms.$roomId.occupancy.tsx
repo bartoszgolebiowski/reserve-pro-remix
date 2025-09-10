@@ -65,11 +65,14 @@ export default function RoomOccupancyRoute() {
   const data = useLoaderData<typeof loader>();
 
   return (
-    <RoomOccupancyView
-      room={data.room}
-      locationName={data.locationName}
-      reservations={data.reservations}
-      employees={data.employees}
-    />
+    <>
+      <hr className="my-8" />
+      <RoomOccupancyView
+        room={data.room}
+        locationName={data.locationName}
+        reservations={data.reservations}
+        employees={data.employees}
+      />
+    </>
   );
 }
