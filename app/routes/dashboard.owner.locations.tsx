@@ -2,14 +2,14 @@
  * Route for owner locations management
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import { Outlet, redirect, useLoaderData } from "react-router";
 import { LocationsManager } from "~/components/locations/LocationsManager";
 import { authContainer } from "~/lib/auth/container";
 import {
-    createLocation,
-    deleteLocation,
-    getLocationsWithRoomCountByOwnerId,
-    updateLocation,
+  createLocation,
+  deleteLocation,
+  getLocationsWithRoomCountByOwnerId,
+  updateLocation,
 } from "~/lib/repos/locations.repo";
 import type { LocationFormData } from "~/lib/types";
 
@@ -146,6 +146,8 @@ export default function OwnerLocationsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <LocationsManager locations={locations} />
+      <hr className="my-8" />
+      <Outlet />
     </div>
   );
 }

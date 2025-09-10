@@ -6,7 +6,9 @@ import {
 export default [
   route("/", "routes/home.tsx", [
     route("dashboard/owner", "routes/dashboard.owner.tsx", [
-      route("locations", "routes/dashboard.owner.locations.tsx"),
+      route("locations", "routes/dashboard.owner.locations.tsx", [
+        route(":locationId/rooms", "routes/dashboard.owner.locations.$locationId.rooms.tsx"),
+      ]),
     ]),
     route("dashboard/employee", "routes/dashboard.employee.tsx"),
   ]),

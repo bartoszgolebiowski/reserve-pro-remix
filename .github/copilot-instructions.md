@@ -1,12 +1,16 @@
-# Zasady AI dla lernmemo
-
 # Wizja aplikacji
 
-Ten projekt ma na celu zbudowanie potężnej, a jednocześnie przyjaznej użytkownikowi aplikacji z fiszkami, która upraszcza tworzenie i naukę fiszek. Nasze główne cele to:
+## Misja Systemu Zarządzania Rezerwacjami (Reserve Pro)
 
-1. **Łatwość użycia**: Szybkie tworzenie fiszek z obrazów, plików CSV lub ręcznych wpisów.  
-2. **Angażujące doświadczenie nauki**: Zapewnienie gry z fiszkami, która jest elastyczna i wygodna do regularnej praktyki.  
-3. **Dostępność i rozwój**: Pozwolić użytkownikom się rejestrować, śledzić postępy i skalować się do planu premium z wyższymi limitami.
+ReservePro to kompleksowy system zarządzania rezerwacjami, który optymalizuje wykorzystanie zasobów w obiektach sportowo-rehabilitacyjnych. Naszą misją jest:
+
+- Optymalizacja obłożenia: Maksymalizacja wykorzystania zasobów poprzez inteligentny system dynamicznych cen i identyfikację "martwych godzin".
+
+- Efektywne zarządzanie: Zapewnienie właścicielom i pracownikom pełnej kontroli nad harmonogramem pracy oraz rezerwacjami w czasie rzeczywistym.
+
+- Transparentność operacyjna: Dostarczenie właścicielom szczegółowego wglądu w wykorzystanie sal i pracę personelu.
+
+- Uproszczenie procesu rezerwacji: Umożliwienie klientom łatwego dokonywania rezerwacji online z dynamicznym systemem cen.
 
 ## Zasady kodowania
 
@@ -22,21 +26,23 @@ Ten projekt ma na celu zbudowanie potężnej, a jednocześnie przyjaznej użytko
 - Przy debugowaniu dostarczaj ukierunkowane podejścia diagnostyczne zamiast rozproszonego rozwiązywania problemów.
 - Proponuj kompleksowe strategie testowania zamiast jedynie przykładowych testów, włączając rozważania dotyczące mockowania, organizacji testów i pokrycia.
 
-## Testowanie
+## Backend
 
-### Wytyczne dla testów jednostkowych
+### Wytyczne dla Remix-run
 
-#### Vitest
+#### Remix-run
 
-- Używaj Vitest do szybszego testowania w projektach opartych na Vite.
-- Wykorzystuj obiekt vi do mocków i szpiegów.
-- Stosuj wzorzec test.each dla testów parametryzowanych.
-- Używaj plików setup do globalnej konfiguracji testów.
-- Wykorzystuj funkcję inline snapshot dla małych snapshotów.
-- Używaj trybu watch podczas rozwoju.
-- Wykorzystuj tryb UI do interaktywnego eksplorowania testów.
-- Implementuj mockowanie modułów i zależności.
-- Używaj happy-dom jako środowiska DOM do testów.
+- Używaj funkcji loader do pobierania danych na poziomie strony.
+- Używaj funkcji action do obsługi operacji mutacji na poziomie strony
+- Używaj hooka useLoaderData do dostępu do danych załadowanych przez loader.
+- Używaj hooka useActionData do dostępu do danych zwróconych przez action.
+- Używaj hooka useTransition do śledzenia stanu nawigacji i mutacji.
+- Używaj hooka useSubmit do programowego przesyłania formularzy.
+- Używaj hooka useFetcher do wykonywania operacji pobierania i mutacji bez nawigacji.
+- Używaj komponentu <Form> z remix zamiast standardowego elementu <form> dla obsługi formularzy.
+- Używaj funkcji redirect z remix do przekierowywania użytkowników po operacjach mutacji.
+- Gdy funkcja action obsługuje różne typy żądań (np. tworzenie, aktualizacja, usuwanie), rozważ użycie pola \_method w formularzu do określenia typu operacji.
+- Gdy dodasz nowy routes, zaktualizuj routes.ts z nową ścieżką.
 
 ## Baza danych
 
@@ -47,8 +53,9 @@ Ten projekt ma na celu zbudowanie potężnej, a jednocześnie przyjaznej użytko
 - **SQLite + Drizzle-ORM + Turso**
   - Główna relacyjna baza danych to SQLite dla rozwoju lokalnego.
   - Drizzle-ORM zapewnia typowane, lekkie warstwy ORM.
-  - Modele bazy danych są definiowane w TypeScript i synchronizowane z bazą danych. Ich lokalizacja to `db/schema`.
+  - Modele bazy danych są definiowane w TypeScript i synchronizowane z bazą danych. Ich lokalizacja to `db/schema/**`.
   - Do komunikacji z bazą danych używamy repozytoriów w `lib/**/repos`.
+  - Repozytoria są pisane w podejsciu klasowym, a wszystkie zależności są wstrzykiwane przez konstruktor.
 
 ## Frontend
 

@@ -54,8 +54,7 @@ export function LocationsManager({ locations }: LocationsManagerProps) {
   };
 
   const handleManageRooms = (location: Location) => {
-    // Temporary alert until rooms management is implemented
-    alert(`Zarządzanie salami dla "${location.name}" będzie wkrótce dostępne!`);
+    window.location.href = `/dashboard/owner/locations/${location.id}/rooms`;
   };
 
   if (locations.length === 0) {
