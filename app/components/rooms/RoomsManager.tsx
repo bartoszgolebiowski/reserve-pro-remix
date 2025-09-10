@@ -5,10 +5,10 @@ import { Calendar, Edit2, Home, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Form,
-  Outlet,
   useActionData,
+  useNavigate,
   useNavigation,
-  useSubmit,
+  useSubmit
 } from "react-router";
 import type { Room } from "~/lib/types";
 
@@ -17,10 +17,7 @@ interface RoomsManagerProps {
   rooms: Room[];
 }
 
-export function RoomsManager({
-  locationId,
-  rooms,
-}: RoomsManagerProps) {
+export function RoomsManager({ locationId, rooms }: RoomsManagerProps) {
   const submit = useSubmit();
   const actionData = useActionData<{
     errors?: Record<string, string[]>;
@@ -31,11 +28,15 @@ export function RoomsManager({
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const navigation = useNavigation();
+  const navigate = useNavigate();
 
   // track previous navigation state so we can detect completion of a submit
   const prevNavStateRef = useRef(navigation.state);
+
+  const selectRoom = (room: Room) => {
+    navigate(`./${room.id}/occupancy`);
+  };
 
   useEffect(() => {
     // if we were submitting and now are not, and action didn't return an error,
@@ -187,7 +188,7 @@ export function RoomsManager({
 
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <button
-                  onClick={() => setSelectedRoom(room)}
+                  onClick={() => selectRoom(room)}
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <Calendar className="w-4 h-4" />
@@ -343,9 +344,6 @@ export function RoomsManager({
           </div>
         </div>
       )}
-      <hr className="my-8" />
-
-      <Outlet />
     </div>
   );
 }

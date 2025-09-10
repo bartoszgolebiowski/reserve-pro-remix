@@ -1,15 +1,10 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import { z } from "zod";
 import { RoomsManager } from "~/components/rooms/RoomsManager";
 import { authContainer } from "~/lib/auth/container";
-import {
-  createRoom,
-  deleteRoom,
-  getRoomsByLocationId,
-  updateRoom,
-} from "~/lib/repos/rooms.repo";
+import { reservationContainer } from "~/lib/reservation/container";
 
 const roomFormSchema = z.object({
   name: z
@@ -32,7 +27,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response("Missing locationId", { status: 400 });
   }
 
-  const rooms = await getRoomsByLocationId(locationId);
+  const rooms =
+    await reservationContainer.roomsRepo.getRoomsByLocationId(locationId);
 
   return json({ rooms, locationId });
 }
@@ -64,7 +60,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
               .filter(Boolean) || [],
         });
 
-        const room = await createRoom(locationId, user.id, data);
+        const room = await reservationContainer.roomsRepo.createRoom(
+          locationId,
+          user.id,
+          data
+        );
         if (!room) {
           return json({ error: "Failed to create room" }, { status: 400 });
         }
@@ -97,7 +97,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
               .filter(Boolean) || [],
         });
 
-        const room = await updateRoom(roomId, user.id, data);
+        const room = await reservationContainer.roomsRepo.updateRoom(
+          roomId,
+          user.id,
+          data
+        );
         if (!room) {
           return json({ error: "Failed to update room" }, { status: 400 });
         }
@@ -116,7 +120,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
         return json({ error: "Room ID is required" }, { status: 400 });
       }
 
-      const success = await deleteRoom(roomId, user.id);
+      const success = await reservationContainer.roomsRepo.deleteRoom(
+        roomId,
+        user.id
+      );
       if (!success) {
         return json({ error: "Failed to delete room" }, { status: 400 });
       }
@@ -133,9 +140,10 @@ export default function LocationRoomsRoute() {
   const { rooms, locationId } = useLoaderData<typeof loader>();
 
   return (
-    <RoomsManager
-      locationId={locationId}
-      rooms={rooms}
-    />
+    <div>
+      <RoomsManager locationId={locationId} rooms={rooms} />
+      <hr className="my-8" />
+      <Outlet />
+    </div>
   );
 }

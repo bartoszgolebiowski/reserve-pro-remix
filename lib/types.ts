@@ -55,3 +55,80 @@ export type RoomFormData = {
   capacity: number;
   equipment: string[];
 };
+
+// Employee types
+export type Employee = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  employeeType: "physiotherapist" | "personal_trainer";
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type EmployeeLocation = {
+  id: string;
+  employeeId: string;
+  locationId: string;
+  hourlyRate: number;
+  createdAt: string;
+};
+
+// Reservation types
+export type Reservation = {
+  id: string;
+  employeeId: string;
+  roomId: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  serviceType: "physiotherapy" | "personal_training" | "other";
+  startTime: Date;
+  endTime: Date;
+  basePrice: number;
+  finalPrice: number;
+  isDeadHour: boolean;
+  status: "confirmed" | "cancelled" | "completed";
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReservationFormData = {
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  serviceType: "physiotherapy" | "personal_training" | "other";
+  startTime: Date;
+  endTime: Date;
+  employeeId: string;
+  roomId: string;
+};
+
+// Pricing configuration types
+export type PricingConfig = {
+  id: string;
+  ownerId: string;
+  deadHoursStart: number;
+  deadHoursEnd: number;
+  deadHourDiscount: number;
+  baseRatePhysiotherapy: number;
+  baseRatePersonalTraining: number;
+  baseRateOther: number;
+  weekdayMultiplier: number;
+  weekendMultiplier: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PricingConfigFormData = {
+  deadHoursStart: number;
+  deadHoursEnd: number;
+  deadHourDiscount: number;
+  baseRatePhysiotherapy: number;
+  baseRatePersonalTraining: number;
+  baseRateOther: number;
+  weekdayMultiplier: number;
+  weekendMultiplier: number;
+};

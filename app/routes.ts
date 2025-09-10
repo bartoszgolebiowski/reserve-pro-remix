@@ -1,13 +1,19 @@
-import {
-  type RouteConfig,
-  route
-} from "@react-router/dev/routes";
+import { type RouteConfig, route } from "@react-router/dev/routes";
 
 export default [
   route("/", "routes/home.tsx", [
     route("dashboard/owner", "routes/dashboard.owner.tsx", [
       route("locations", "routes/dashboard.owner.locations.tsx", [
-        route(":locationId/rooms", "routes/dashboard.owner.locations.$locationId.rooms.tsx"),
+        route(
+          ":locationId/rooms",
+          "routes/dashboard.owner.locations.$locationId.rooms.tsx",
+          [
+            route(
+              ":roomId/occupancy",
+              "routes/dashboard.owner.locations.$locationId.rooms.$roomId.occupancy.tsx"
+            ),
+          ]
+        ),
       ]),
     ]),
     route("dashboard/employee", "routes/dashboard.employee.tsx"),

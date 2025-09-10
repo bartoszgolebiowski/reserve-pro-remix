@@ -1,37 +1,341 @@
-import { ArrowLeft } from "lucide-react";
-import type { Room } from "~/lib/types";
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  FileText,
+  Mail,
+  Phone,
+  User
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import type { Employee, Reservation, Room } from "~/lib/types";
 
 interface RoomOccupancyViewProps {
   room: Room;
   locationName: string;
-  onBack: () => void;
+  reservations: Reservation[];
+  employees: Employee[];
 }
 
-export function RoomOccupancyView({ room, locationName, onBack }: RoomOccupancyViewProps) {
+export function RoomOccupancyView({
+  room,
+  locationName,
+  reservations,
+  employees,
+}: RoomOccupancyViewProps) {
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [weekDates, setWeekDates] = useState<Date[]>([]);
+
+  useEffect(() => {
+    // Generowanie dat tygodnia zaczynając od poniedziałku
+    const startOfWeek = new Date(selectedDate);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+    startOfWeek.setDate(diff);
+
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      dates.push(date);
+    }
+    setWeekDates(dates);
+  }, [selectedDate]);
+
+  const getRoomReservations = (date: Date) => {
+    const dateStr = date.toDateString();
+    return reservations
+      .filter(
+        (reservation) =>
+          reservation.roomId === room.id &&
+          reservation.startTime.toDateString() === dateStr &&
+          reservation.status !== "cancelled"
+      )
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  };
+
+  const getEmployeeName = (employeeId: string) => {
+    const employee = employees.find((emp) => emp.id === employeeId);
+    return employee
+      ? `${employee.firstName} ${employee.lastName}`
+      : "Nieznany pracownik";
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("pl-PL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("pl-PL", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+  };
+
+  const getServiceTypeDisplay = (type: string) => {
+    const map: Record<string, string> = {
+      physiotherapy: "Fizjoterapia",
+      personal_training: "Trening personalny",
+      other: "Inne",
+    };
+    return map[type] || type;
+  };
+
+  const getServiceTypeColor = (type: string) => {
+    const map: Record<string, string> = {
+      physiotherapy: "bg-blue-100 text-blue-800 border-blue-200",
+      personal_training: "bg-green-100 text-green-800 border-green-200",
+      other: "bg-gray-100 text-gray-800 border-gray-200",
+    };
+    return map[type] || "bg-gray-100 text-gray-800 border-gray-200";
+  };
+
+  const navigateWeek = (direction: "prev" | "next") => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(selectedDate.getDate() + (direction === "next" ? 7 : -7));
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{room.name}</h2>
+            <p className="text-gray-600">{locationName} • Obłożenie sali</p>
+          </div>
+        </div>
+
         <button
-          onClick={onBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          onClick={goToToday}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <ArrowLeft className="w-5 h-5" />
+          Dzisiaj
         </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {room.name}
-          </h2>
-          <p className="text-gray-600">{locationName}</p>
+      </div>
+
+      {/* Week Navigation */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigateWeek("prev")}
+            className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            ← Poprzedni tydzień
+          </button>
+
+          <h3 className="text-lg font-semibold text-gray-900">
+            {weekDates.length > 0 &&
+              `${weekDates[0].toLocaleDateString("pl-PL", { day: "numeric", month: "long" })} - 
+               ${weekDates[6].toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })}`}
+          </h3>
+
+          <button
+            onClick={() => navigateWeek("next")}
+            className="px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Następny tydzień →
+          </button>
+        </div>
+
+        {/* Week Calendar */}
+        <div className="grid grid-cols-7 gap-4">
+          {weekDates.map((date, index) => {
+            const dayReservations = getRoomReservations(date);
+            const isToday = date.toDateString() === new Date().toDateString();
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+            return (
+              <div
+                key={index}
+                className={`border rounded-lg p-3 min-h-[200px] ${
+                  isToday
+                    ? "border-blue-500 bg-blue-50"
+                    : isWeekend
+                      ? "border-gray-200 bg-gray-50"
+                      : "border-gray-200 bg-white"
+                }`}
+              >
+                <div className="text-center mb-3">
+                  <div
+                    className={`text-sm font-medium ${isToday ? "text-blue-700" : "text-gray-700"}`}
+                  >
+                    {date
+                      .toLocaleDateString("pl-PL", { weekday: "short" })
+                      .toUpperCase()}
+                  </div>
+                  <div
+                    className={`text-lg font-bold ${isToday ? "text-blue-900" : "text-gray-900"}`}
+                  >
+                    {date.getDate()}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {dayReservations.length === 0 ? (
+                    <div className="text-xs text-gray-500 text-center py-4">
+                      Brak rezerwacji
+                    </div>
+                  ) : (
+                    dayReservations.map((reservation) => (
+                      <div
+                        key={reservation.id}
+                        className={`p-2 rounded border text-xs ${getServiceTypeColor(reservation.serviceType)}`}
+                      >
+                        <div className="font-medium mb-1">
+                          {formatTime(reservation.startTime)} -{" "}
+                          {formatTime(reservation.endTime)}
+                        </div>
+                        <div className="text-gray-700 mb-1">
+                          {getEmployeeName(reservation.employeeId)}
+                        </div>
+                        <div className="text-gray-600">
+                          {reservation.clientName}
+                        </div>
+                        <div className="text-gray-500 mt-1">
+                          {getServiceTypeDisplay(reservation.serviceType)}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Obłożenie sali
-        </h3>
-        <p className="text-gray-600">
-          Ta funkcjonalność będzie dostępna wkrótce.
-        </p>
+      {/* Detailed Reservations List */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Szczegóły rezerwacji
+          </h3>
+          <p className="text-gray-600">
+            Wszystkie rezerwacje w bieżącym tygodniu
+          </p>
+        </div>
+
+        <div className="divide-y divide-gray-200">
+          {weekDates.map((date) => {
+            const dayReservations = getRoomReservations(date);
+
+            if (dayReservations.length === 0) return null;
+
+            return (
+              <div key={date.toISOString()} className="p-6">
+                <h4 className="text-md font-semibold text-gray-900 mb-4 capitalize">
+                  {formatDate(date)}
+                </h4>
+
+                <div className="space-y-4">
+                  {dayReservations.map((reservation) => (
+                    <div
+                      key={reservation.id}
+                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Clock className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium">
+                              {formatTime(reservation.startTime)} -{" "}
+                              {formatTime(reservation.endTime)}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <User className="w-4 h-4 text-gray-500" />
+                            <span>
+                              {getEmployeeName(reservation.employeeId)}
+                            </span>
+                          </div>
+                          <div
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getServiceTypeColor(reservation.serviceType)}`}
+                          >
+                            {getServiceTypeDisplay(reservation.serviceType)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm text-gray-600 mb-1">
+                            Klient:
+                          </div>
+                          <div className="font-medium mb-2">
+                            {reservation.clientName}
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
+                            <Mail className="w-3 h-3" />
+                            <span>{reservation.clientEmail}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Phone className="w-3 h-3" />
+                            <span>{reservation.clientPhone}</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            <span className="font-medium text-green-600">
+                              {reservation.finalPrice} zł
+                            </span>
+                            {reservation.isDeadHour && (
+                              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                                Martwa godzina
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              reservation.status === "confirmed"
+                                ? "bg-green-100 text-green-800"
+                                : reservation.status === "completed"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {reservation.status === "confirmed"
+                              ? "Potwierdzona"
+                              : reservation.status === "completed"
+                                ? "Zakończona"
+                                : "Anulowana"}
+                          </div>
+                          {reservation.notes && (
+                            <div className="flex items-center space-x-2 mt-2 text-sm text-gray-600">
+                              <FileText className="w-3 h-3" />
+                              <span>Ma notatki</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {weekDates.every((date) => getRoomReservations(date).length === 0) && (
+          <div className="p-12 text-center">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Brak rezerwacji
+            </h3>
+            <p className="text-gray-600">
+              W tym tygodniu nie ma żadnych rezerwacji dla tej sali
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

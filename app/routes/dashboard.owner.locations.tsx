@@ -5,12 +5,8 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData } from "react-router";
 import { LocationsManager } from "~/components/locations/LocationsManager";
 import { authContainer } from "~/lib/auth/container";
-import {
-  createLocation,
-  deleteLocation,
-  getLocationsWithRoomCountByOwnerId,
-  updateLocation,
-} from "~/lib/repos/locations.repo";
+import { reservationContainer } from "~/lib/reservation/container";
+
 import type { LocationFormData } from "~/lib/types";
 
 export function meta() {
@@ -27,7 +23,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const user = await authContainer.rbacService.requireOwner(request);
 
   try {
-    const locations = await getLocationsWithRoomCountByOwnerId(user.user.id);
+    const locations =
+      await reservationContainer.locationsRepo.getLocationsWithRoomCountByOwnerId(
+        user.user.id
+      );
 
     return {
       locations,
@@ -64,7 +63,7 @@ export async function action({ request }: ActionFunctionArgs) {
           };
         }
 
-        await createLocation({
+        await reservationContainer.locationsRepo.createLocation({
           ...locationData,
           ownerId: user.id,
         });
@@ -92,11 +91,12 @@ export async function action({ request }: ActionFunctionArgs) {
           };
         }
 
-        const updatedLocation = await updateLocation(
-          locationId,
-          user.id,
-          locationData
-        );
+        const updatedLocation =
+          await reservationContainer.locationsRepo.updateLocation(
+            locationId,
+            user.id,
+            locationData
+          );
 
         if (!updatedLocation) {
           return {
@@ -116,7 +116,10 @@ export async function action({ request }: ActionFunctionArgs) {
           };
         }
 
-        const deleted = await deleteLocation(locationId, user.id);
+        const deleted = await reservationContainer.locationsRepo.deleteLocation(
+          locationId,
+          user.id
+        );
 
         if (!deleted) {
           return {
