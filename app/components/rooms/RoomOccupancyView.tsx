@@ -5,7 +5,7 @@ import {
   FileText,
   Mail,
   Phone,
-  User
+  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Employee, Reservation, Room } from "~/lib/types";
@@ -15,6 +15,7 @@ interface RoomOccupancyViewProps {
   locationName: string;
   reservations: Reservation[];
   employees: Employee[];
+  onBack?: () => void;
 }
 
 export function RoomOccupancyView({
@@ -22,9 +23,12 @@ export function RoomOccupancyView({
   locationName,
   reservations,
   employees,
+  onBack,
 }: RoomOccupancyViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState<Date[]>([]);
+  const [viewDay, setViewDay] = useState<Date>(new Date()); // Day selected for detailed view
+  const [showAllWeek, setShowAllWeek] = useState(false); // State to toggle between daily and weekly view
 
   useEffect(() => {
     // Generowanie dat tygodnia zaczynając od poniedziałku
@@ -41,6 +45,18 @@ export function RoomOccupancyView({
     }
     setWeekDates(dates);
   }, [selectedDate]);
+
+  // Gdy zmienia się tydzień, ustawiamy wybrany dzień na pierwszy dzień tygodnia
+  useEffect(() => {
+    if (weekDates.length > 0) {
+      const today = new Date();
+      // Jeśli dzisiejszy dzień jest w zakresie tygodnia, wybieramy go, w przeciwnym razie wybieramy pierwszy dzień tygodnia
+      const todayInWeek = weekDates.find(
+        (date) => date.toDateString() === today.toDateString()
+      );
+      setViewDay(todayInWeek || weekDates[0]);
+    }
+  }, [weekDates]);
 
   const getRoomReservations = (date: Date) => {
     const dateStr = date.toDateString();
@@ -102,6 +118,16 @@ export function RoomOccupancyView({
 
   const goToToday = () => {
     setSelectedDate(new Date());
+    setViewDay(new Date());
+  };
+
+  const selectDay = (date: Date) => {
+    setViewDay(date);
+    setShowAllWeek(false); // Switch to daily view when selecting a day
+  };
+
+  const toggleWeekView = () => {
+    setShowAllWeek(!showAllWeek);
   };
 
   return (
@@ -151,15 +177,16 @@ export function RoomOccupancyView({
         <div className="grid grid-cols-7 gap-4">
           {weekDates.map((date, index) => {
             const dayReservations = getRoomReservations(date);
-            const isToday = date.toDateString() === new Date().toDateString();
             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isSelected = date.toDateString() === viewDay.toDateString();
 
             return (
               <div
                 key={index}
-                className={`border rounded-lg p-3 min-h-[200px] ${
-                  isToday
-                    ? "border-blue-500 bg-blue-50"
+                onClick={() => selectDay(date)}
+                className={`border rounded-lg p-3 min-h-[200px] transition-all cursor-pointer hover:border-blue-400 ${
+                  isSelected
+                    ? "border-blue-600 bg-blue-50 shadow-sm"
                     : isWeekend
                       ? "border-gray-200 bg-gray-50"
                       : "border-gray-200 bg-white"
@@ -167,14 +194,18 @@ export function RoomOccupancyView({
               >
                 <div className="text-center mb-3">
                   <div
-                    className={`text-sm font-medium ${isToday ? "text-blue-700" : "text-gray-700"}`}
+                    className={`text-sm font-medium ${
+                      isSelected ? "text-blue-700" : "text-gray-700"
+                    }`}
                   >
                     {date
                       .toLocaleDateString("pl-PL", { weekday: "short" })
                       .toUpperCase()}
                   </div>
                   <div
-                    className={`text-lg font-bold ${isToday ? "text-blue-900" : "text-gray-900"}`}
+                    className={`text-lg font-bold ${
+                      isSelected ? "text-blue-900" : "text-gray-900"
+                    }`}
                   >
                     {date.getDate()}
                   </div>
@@ -216,20 +247,42 @@ export function RoomOccupancyView({
 
       {/* Detailed Reservations List */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Szczegóły rezerwacji
-          </h3>
-          <p className="text-gray-600">
-            Wszystkie rezerwacje w bieżącym tygodniu
-          </p>
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Szczegóły rezerwacji
+            </h3>
+            <p className="text-gray-600">
+              {showAllWeek
+                ? "Wszystkie rezerwacje w bieżącym tygodniu"
+                : `Rezerwacje na ${formatDate(viewDay)}`}
+            </p>
+          </div>
+          <button
+            onClick={toggleWeekView}
+            className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium transition-colors"
+          >
+            {showAllWeek ? "Pokaż wybrany dzień" : "Pokaż cały tydzień"}
+          </button>
         </div>
 
         <div className="divide-y divide-gray-200">
-          {weekDates.map((date) => {
+          {(showAllWeek ? weekDates : [viewDay]).map((date) => {
             const dayReservations = getRoomReservations(date);
 
-            if (dayReservations.length === 0) return null;
+            if (dayReservations.length === 0) {
+              // Only show empty state message for the selected day in single day view
+              if (!showAllWeek) {
+                return (
+                  <div key={date.toISOString()} className="p-6 text-center">
+                    <p className="text-gray-500 py-8">
+                      Brak rezerwacji na ten dzień
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            }
 
             return (
               <div key={date.toISOString()} className="p-6">
