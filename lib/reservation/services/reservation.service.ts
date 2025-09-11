@@ -356,9 +356,7 @@ export class ReservationService {
    * @returns Lista rezerwacji
    */
   async getReservationsByOwnerId(ownerId: string): Promise<Reservation[]> {
-    // Ta metoda wymagałaby rozszerzenia ReservationsRepository
-    // Na razie zwrócimy pustą listę
-    return [];
+    return this.reservationsRepo.getReservationsByOwnerId(ownerId);
   }
 }
 

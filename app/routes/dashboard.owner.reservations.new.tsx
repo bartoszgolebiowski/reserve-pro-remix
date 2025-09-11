@@ -1,14 +1,18 @@
 import { CheckCircle } from "lucide-react";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useActionData, useLoaderData, useNavigate } from "react-router";
+import {
+    redirect,
+    useActionData,
+    useLoaderData,
+    useSubmit
+} from "react-router";
 import { ReservationWizard } from "~/components/owner/reservations/wizard/ReservationWizard";
+import { authContainer } from "~/lib/auth/container";
+import { reservationContainer } from "~/lib/reservation/container";
 import type {
-    Employee,
-    Location,
     OwnerReservationFormData,
     ReservationWizardStep,
-    Room
 } from "~/lib/types";
 
 export function meta() {
@@ -22,30 +26,67 @@ export function meta() {
  * Loader - pobiera dane potrzebne do utworzenia rezerwacji
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-  // TODO: Implement authentication and get user data
-  const ownerId = "owner-id"; // Placeholder
-  
-  // TODO: Fetch locations, rooms, employees for the owner
-  const locations: Location[] = [];
-  const rooms: Room[] = [];
-  const employees: Employee[] = [];
-  
-  return {
-    ownerId,
-    locations,
-    rooms,
-    employees,
-  };
+  // Pobierz dane użytkownika z sesji
+  const sessionData = await authContainer.sessionService.getSession(request);
+  if (!sessionData?.user) {
+    throw redirect("/auth/login");
+  }
+
+  const ownerId = sessionData.user.id;
+
+  // Sprawdź czy użytkownik to owner
+  if (sessionData.user.role !== "OWNER") {
+    throw new Error("Brak uprawnień do tworzenia rezerwacji");
+  }
+
+  try {
+    // Pobierz lokalizacje właściciela
+    const locations =
+      await reservationContainer.locationsRepo.getLocationsByOwnerId(ownerId);
+
+    // Pobierz sale właściciela (z wszystkich lokalizacji)
+    const rooms =
+      await reservationContainer.roomsRepo.getRoomsByOwnerId(ownerId);
+
+    // Pobierz pracowników właściciela (z wszystkich lokalizacji)
+    const employees =
+      await reservationContainer.employeesRepo.getEmployeesByOwnerId(ownerId);
+
+    return {
+      ownerId,
+      locations,
+      rooms,
+      employees,
+    };
+  } catch (error) {
+    console.error("Error loading reservation data:", error);
+    throw new Error("Błąd podczas ładowania danych");
+  }
 }
 
 /**
  * Action - obsługuje tworzenie nowej rezerwacji
  */
 export async function action({ request }: ActionFunctionArgs) {
+  // Pobierz dane użytkownika z sesji
+  const sessionData = await authContainer.sessionService.getSession(request);
+  if (!sessionData?.user) {
+    return redirect("/auth/login");
+  }
+
+  const ownerId = sessionData.user.id;
+
+  // Sprawdź czy użytkownik to owner
+  if (sessionData.user.role !== "OWNER") {
+    return {
+      error: "Brak uprawnień do tworzenia rezerwacji",
+    };
+  }
+
   const formData = await request.formData();
-  
+
   try {
-    // TODO: Implement reservation creation logic
+    // Przygotuj dane rezerwacji
     const reservationData: OwnerReservationFormData = {
       locationId: formData.get("locationId") as string,
       roomId: formData.get("roomId") as string,
@@ -56,43 +97,113 @@ export async function action({ request }: ActionFunctionArgs) {
       serviceType: formData.get("serviceType") as any,
       startTime: new Date(formData.get("startTime") as string),
       endTime: new Date(formData.get("endTime") as string),
-      notes: formData.get("notes") as string || undefined,
+      notes: (formData.get("notes") as string) || undefined,
     };
 
-    // TODO: Create reservation using ReservationService
-    // const reservation = await reservationService.createReservationByOwner(ownerId, reservationData);
-    
+    // Pobierz konfigurację cenową
+    const pricingConfig =
+      await reservationContainer.pricingService.getPricingOrDefault(ownerId);
+
+    // Pobierz stawkę pracownika
+    const employee = await reservationContainer.employeesRepo.getEmployeeById(
+      reservationData.employeeId
+    );
+    if (!employee) {
+      return {
+        error: "Nie znaleziono wybranego pracownika",
+      };
+    }
+
+    // Oblicz cenę rezerwacji
+    const priceCalculation =
+      reservationContainer.reservationService.calculateReservationPrice({
+        serviceType: reservationData.serviceType,
+        startTime: reservationData.startTime,
+        endTime: reservationData.endTime,
+        employeeRate: 0, // Będzie pobrana z employee locations
+        deadHoursStart: pricingConfig.deadHoursStart,
+        deadHoursEnd: pricingConfig.deadHoursEnd,
+        deadHourDiscount: pricingConfig.deadHourDiscount,
+        baseRates: {
+          physiotherapy: pricingConfig.baseRatePhysiotherapy,
+          personal_training: pricingConfig.baseRatePersonalTraining,
+          other: pricingConfig.baseRateOther,
+        },
+        weekdayMultiplier: pricingConfig.weekdayMultiplier,
+        weekendMultiplier: pricingConfig.weekendMultiplier,
+      });
+
+    // Utwórz rezerwację
+    const reservation =
+      await reservationContainer.reservationService.createReservationByOwner(
+        ownerId,
+        reservationData
+      );
+
+    // Zaktualizuj cenę w rezerwacji
+    await reservationContainer.reservationsRepo.updateReservation(
+      reservation.id,
+      {
+        basePrice: priceCalculation.basePrice,
+        finalPrice: priceCalculation.finalPrice,
+        isDeadHour: priceCalculation.isDeadHour,
+      }
+    );
+
     return redirect("/dashboard/owner/reservations");
   } catch (error) {
+    console.error("Error creating reservation:", error);
     return {
-      error: error instanceof Error ? error.message : "Wystąpił błąd podczas tworzenia rezerwacji",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Wystąpił błąd podczas tworzenia rezerwacji",
     };
   }
 }
 
 export default function NewReservation() {
-  const { ownerId, locations, rooms, employees } = useLoaderData<typeof loader>();
+  const { ownerId, locations, rooms, employees } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const navigate = useNavigate();
-  
-  const [currentStep, setCurrentStep] = useState<ReservationWizardStep>("location");
-  const [formData, setFormData] = useState<Partial<OwnerReservationFormData>>({});
+  const submit = useSubmit();
+
+  const [currentStep, setCurrentStep] =
+    useState<ReservationWizardStep>("location");
+  const [formData, setFormData] = useState<Partial<OwnerReservationFormData>>(
+    {}
+  );
 
   const handleStepChange = (step: ReservationWizardStep) => {
     setCurrentStep(step);
   };
 
   const handleDataChange = (data: Partial<OwnerReservationFormData>) => {
-    setFormData(prev => ({ ...prev, ...data }));
+    setFormData((prev) => ({ ...prev, ...data }));
   };
 
   const handleComplete = (finalData: OwnerReservationFormData) => {
     // Dane zostaną przesłane przez formularz
     setFormData(finalData);
+    // brakuje tutaj submita formularza
+    const formData = Object.entries(finalData).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc.append(key, value instanceof Date ? value.toISOString() : value);
+      }
+      return acc;
+    }, new FormData());
+
+    submit(formData, { method: "POST" });
+  };
+
+  const getStepIndex = (step: ReservationWizardStep): number => {
+    const steps = ["location", "room", "employee", "details", "summary"];
+    return steps.indexOf(step);
   };
 
   return (
     <div className="">
+      <hr className="my-8" />
       {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -105,7 +216,7 @@ export default function NewReservation() {
           ].map((step, index) => {
             const isCompleted = getStepIndex(currentStep) > index;
             const isCurrent = currentStep === step.key;
-            
+
             return (
               <div key={step.key} className="flex items-center">
                 <div
@@ -113,8 +224,8 @@ export default function NewReservation() {
                     isCompleted
                       ? "bg-green-600 border-green-600 text-white"
                       : isCurrent
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : "bg-white border-gray-300 text-gray-400"
+                        ? "bg-blue-600 border-blue-600 text-white"
+                        : "bg-white border-gray-300 text-gray-400"
                   }`}
                 >
                   {isCompleted ? (
@@ -175,9 +286,4 @@ export default function NewReservation() {
       </div>
     </div>
   );
-}
-
-function getStepIndex(step: ReservationWizardStep): number {
-  const steps = ["location", "room", "employee", "details", "summary"];
-  return steps.indexOf(step);
 }

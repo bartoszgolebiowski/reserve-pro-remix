@@ -1,6 +1,8 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, useLoaderData } from "react-router";
+import { Outlet, redirect, useLoaderData } from "react-router";
 import { ReservationsDashboard } from "~/components/owner/reservations/dashboard/ReservationsDashboard";
+import { authContainer } from "~/lib/auth/container";
+import { reservationContainer } from "~/lib/reservation/container";
 import type { Reservation } from "~/lib/types";
 
 export function meta() {
@@ -14,12 +16,33 @@ export function meta() {
  * Loader - pobiera rezerwacje właściciela
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-  // TODO: Implement authentication and get owner reservations
-  const reservations: Reservation[] = [];
+  // Pobierz dane użytkownika z sesji
+  const sessionData = await authContainer.sessionService.getSession(request);
+  if (!sessionData?.user) {
+    throw redirect("/auth/login");
+  }
 
-  return {
-    reservations,
-  };
+  const ownerId = sessionData.user.id;
+  
+  // Sprawdź czy użytkownik to owner
+  if (sessionData.user.role !== "OWNER") {
+    throw new Error("Brak uprawnień do przeglądania rezerwacji");
+  }
+
+  try {
+    // Pobierz rezerwacje właściciela
+    const reservations = await reservationContainer.reservationService.getReservationsByOwnerId(ownerId);
+
+    return {
+      reservations,
+    };
+  } catch (error) {
+    console.error("Error loading reservations:", error);
+    // Zwróć pustą listę w przypadku błędu, żeby UI nie crashował
+    return {
+      reservations: [] as Reservation[],
+    };
+  }
 }
 
 export default function OwnerReservations() {
@@ -28,7 +51,6 @@ export default function OwnerReservations() {
   return (
     <>
       <ReservationsDashboard reservations={reservations} />
-      <hr className="my-8" />
       <Outlet />
     </>
   );

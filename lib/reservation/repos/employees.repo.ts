@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { DrizzleDatabase } from "~/db/index";
 import { users } from "~/db/schema/auth";
-import { employeeLocations, employees } from "~/db/schema/reservations";
+import { employeeLocations, employees, locations } from "~/db/schema/reservations";
 
 export class EmployeesRepository {
   constructor(private db: DrizzleDatabase) {}
@@ -62,6 +62,7 @@ export class EmployeesRepository {
         firstName: users.firstName,
         lastName: users.lastName,
         email: users.email,
+        hourlyRate: employeeLocations.hourlyRate,
         createdAt: employees.createdAt,
         updatedAt: employees.updatedAt,
       })
@@ -76,6 +77,68 @@ export class EmployeesRepository {
       );
 
     return results;
+  }
+
+  /**
+   * Pobiera wszystkich pracowników właściciela (z wszystkich jego lokalizacji)
+   * @param ownerId - ID właściciela
+   * @returns Lista pracowników z danymi lokalizacji
+   */
+  async getEmployeesByOwnerId(ownerId: string) {
+    const results = await this.db
+      .select({
+        id: employees.id,
+        employeeType: employees.employeeType,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        hourlyRate: employeeLocations.hourlyRate,
+        locationId: locations.id,
+        locationName: locations.name,
+        createdAt: employees.createdAt,
+        updatedAt: employees.updatedAt,
+      })
+      .from(employees)
+      .innerJoin(users, eq(employees.id, users.id))
+      .innerJoin(employeeLocations, eq(employees.id, employeeLocations.employeeId))
+      .innerJoin(locations, eq(employeeLocations.locationId, locations.id))
+      .where(eq(locations.ownerId, ownerId))
+      .orderBy(users.firstName, users.lastName);
+
+    return results;
+  }
+
+  /**
+   * Pobiera pracownika po ID z danymi stawki dla konkretnej lokalizacji
+   * @param employeeId - ID pracownika
+   * @param locationId - ID lokalizacji
+   * @returns Dane pracownika ze stawką
+   */
+  async getEmployeeWithRateByLocation(employeeId: string, locationId: string) {
+    const results = await this.db
+      .select({
+        id: employees.id,
+        employeeType: employees.employeeType,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        hourlyRate: employeeLocations.hourlyRate,
+        createdAt: employees.createdAt,
+        updatedAt: employees.updatedAt,
+      })
+      .from(employees)
+      .innerJoin(users, eq(employees.id, users.id))
+      .innerJoin(
+        employeeLocations,
+        and(
+          eq(employees.id, employeeLocations.employeeId),
+          eq(employeeLocations.locationId, locationId)
+        )
+      )
+      .where(eq(employees.id, employeeId))
+      .limit(1);
+
+    return results[0] || null;
   }
 
   /**

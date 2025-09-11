@@ -232,6 +232,50 @@ export class ReservationsRepository {
   }
 
   /**
+   * Sprawdza dostępność sali w danym terminie
+   * @param roomId - ID sali
+   * @param startTime - Czas rozpoczęcia
+   * @param endTime - Czas zakończenia
+   * @returns Czy sala jest dostępna
+   */
+  async checkRoomAvailability(
+    roomId: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<boolean> {
+    const startISOString = startTime.toISOString();
+    const endISOString = endTime.toISOString();
+
+    const conflictingReservations = await this.db
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.roomId, roomId),
+          or(
+            // Sprawdź różne scenariusze nakładania się czasów
+            and(
+              lte(reservations.startTime, startISOString),
+              gt(reservations.endTime, startISOString)
+            ),
+            and(
+              lt(reservations.startTime, endISOString),
+              gte(reservations.endTime, endISOString)
+            ),
+            and(
+              gte(reservations.startTime, startISOString),
+              lt(reservations.endTime, endISOString)
+            )
+          ),
+          // Tylko potwierdzone rezerwacje
+          ne(reservations.status, "cancelled")
+        )
+      );
+
+    return conflictingReservations.length === 0;
+  }
+
+  /**
    * Mapuje obiekt rezerwacji z bazy danych na obiekt biznesowy
    * @param dbReservation - Obiekt rezerwacji z bazy danych
    * @returns Obiekt biznesowy rezerwacji

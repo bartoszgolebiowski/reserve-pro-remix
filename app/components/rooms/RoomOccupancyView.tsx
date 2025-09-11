@@ -1,11 +1,10 @@
 import {
-  Calendar,
   Clock,
   DollarSign,
   FileText,
   Mail,
   Phone,
-  User,
+  User
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Employee, Reservation, Room } from "~/lib/types";
@@ -28,6 +27,7 @@ export function RoomOccupancyView({
   const [weekDates, setWeekDates] = useState<Date[]>([]);
   const [viewDay, setViewDay] = useState<Date>(new Date()); // Day selected for detailed view
   const [showAllWeek, setShowAllWeek] = useState(false); // State to toggle between daily and weekly view
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   useEffect(() => {
     // Generowanie dat tygodnia zaczynając od poniedziałku
@@ -127,6 +127,169 @@ export function RoomOccupancyView({
 
   const toggleWeekView = () => {
     setShowAllWeek(!showAllWeek);
+  };
+
+  // Funkcja do tworzenia siatki godzin dla kalendarza
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      slots.push({
+        hour,
+        label: `${hour.toString().padStart(2, '0')}:00`,
+      });
+    }
+    return slots;
+  };
+
+  // Funkcja do znajdowania rezerwacji dla konkretnej godziny
+  const getReservationForTimeSlot = (date: Date, hour: number) => {
+    const dayReservations = getRoomReservations(date);
+    return dayReservations.filter(reservation => {
+      const startHour = reservation.startTime.getHours();
+      const endHour = reservation.endTime.getHours();
+      const startMinutes = reservation.startTime.getMinutes();
+      const endMinutes = reservation.endTime.getMinutes();
+      
+      // Sprawdzamy czy godzina mieści się w zakresie rezerwacji
+      if (hour >= startHour && hour <= endHour) {
+        // Jeśli to godzina rozpoczęcia, sprawdzamy minuty
+        if (hour === startHour && startMinutes > 0) {
+          return hour < endHour || (hour === endHour && endMinutes > 0);
+        }
+        // Jeśli to godzina zakończenia, sprawdzamy minuty
+        if (hour === endHour && endMinutes === 0) {
+          return false;
+        }
+        return true;
+      }
+      return false;
+    });
+  };
+
+  // Funkcja do sprawdzenia czy rezerwacja zaczyna się w danej godzinie
+  const isReservationStart = (reservation: Reservation, hour: number) => {
+    return reservation.startTime.getHours() === hour;
+  };
+
+  // Funkcja do obliczenia wysokości bloku rezerwacji w siatce
+  const getReservationHeight = (reservation: Reservation) => {
+    const startHour = reservation.startTime.getHours();
+    const endHour = reservation.endTime.getHours();
+    const startMinutes = reservation.startTime.getMinutes();
+    const endMinutes = reservation.endTime.getMinutes();
+    
+    const totalMinutes = (endHour * 60 + endMinutes) - (startHour * 60 + startMinutes);
+    const hours = totalMinutes / 60;
+    
+    return Math.max(0.5, hours); // Minimum pół godziny wysokości
+  };
+
+  // Funkcja do obliczenia offsetu dla rezerwacji rozpoczynających się w środku godziny
+  const getReservationOffset = (reservation: Reservation) => {
+    const minutes = reservation.startTime.getMinutes();
+    return (minutes / 60) * 60; // Offset w pikselach
+  };
+
+  // Główna funkcja renderująca kalendarz
+  const renderCalendarView = () => {
+    const timeSlots = generateTimeSlots();
+    const datesToShow = showAllWeek ? weekDates : [viewDay];
+    
+    return (
+      <div className="overflow-x-auto">
+        <div className="min-w-full">
+          {/* Nagłówek z datami */}
+          <div className="grid grid-cols-[80px_1fr] border-b border-gray-200">
+            <div className="p-3 bg-gray-50 border-r border-gray-200">
+              <span className="text-sm font-medium text-gray-600">Godzina</span>
+            </div>
+            <div className={`grid ${showAllWeek ? 'grid-cols-7' : 'grid-cols-1'} gap-0`}>
+              {datesToShow.map((date, index) => (
+                <div
+                  key={index}
+                  className="p-3 bg-gray-50 border-r border-gray-200 last:border-r-0 text-center"
+                >
+                  <div className="text-sm font-medium text-gray-900">
+                    {date.toLocaleDateString("pl-PL", { 
+                      weekday: showAllWeek ? 'short' : 'long',
+                      day: 'numeric',
+                      month: showAllWeek ? 'short' : 'long'
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Siatka godzin i rezerwacji */}
+          <div className="relative">
+            {timeSlots.map((slot) => (
+              <div key={slot.hour} className="grid grid-cols-[80px_1fr] border-b border-gray-100 min-h-[60px]">
+                {/* Kolumna z godziną */}
+                <div className="p-3 bg-gray-50 border-r border-gray-200 flex items-start">
+                  <span className="text-sm text-gray-600 font-mono">{slot.label}</span>
+                </div>
+                
+                {/* Kolumny z dniami */}
+                <div className={`grid ${showAllWeek ? 'grid-cols-7' : 'grid-cols-1'} gap-0`}>
+                  {datesToShow.map((date, dateIndex) => {
+                    const reservationsInSlot = getReservationForTimeSlot(date, slot.hour);
+                    
+                    return (
+                      <div
+                        key={dateIndex}
+                        className="border-r border-gray-200 last:border-r-0 p-1 relative min-h-[60px]"
+                      >
+                        {reservationsInSlot.map((reservation) => {
+                          if (!isReservationStart(reservation, slot.hour)) {
+                            return null; // Renderujemy tylko na początku rezerwacji
+                          }
+                          
+                          const height = getReservationHeight(reservation);
+                          const offset = getReservationOffset(reservation);
+                          
+                          return (
+                            <div
+                              key={reservation.id}
+                              className={`absolute inset-x-1 ${getServiceTypeColor(reservation.serviceType)} rounded border-l-4 border-l-blue-500 p-2 text-xs z-10 cursor-pointer hover:shadow-md transition-shadow overflow-hidden`}
+                              style={{
+                                height: `${height * 60}px`,
+                                top: `${offset}px`,
+                                zIndex: 10
+                              }}
+                              onClick={() => setSelectedReservation(reservation)}
+                              title={`Kliknij aby zobaczyć szczegóły - ${reservation.clientName}`}
+                            >
+                              <div className="font-medium mb-1 truncate">
+                                {formatTime(reservation.startTime)} - {formatTime(reservation.endTime)}
+                              </div>
+                              <div className="text-gray-700 mb-1 truncate">
+                                {getEmployeeName(reservation.employeeId)}
+                              </div>
+                              <div className="text-gray-600 truncate">
+                                {reservation.clientName}
+                              </div>
+                              <div className="text-gray-500 mt-1 truncate">
+                                {getServiceTypeDisplay(reservation.serviceType)}
+                              </div>
+                              {reservation.finalPrice && (
+                                <div className="text-green-600 font-medium mt-1">
+                                  {reservation.finalPrice} zł
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -244,17 +407,17 @@ export function RoomOccupancyView({
         </div>
       </div>
 
-      {/* Detailed Reservations List */}
+      {/* Calendar View */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              Szczegóły rezerwacji
+              Kalendarz rezerwacji
             </h3>
             <p className="text-gray-600">
               {showAllWeek
-                ? "Wszystkie rezerwacje w bieżącym tygodniu"
-                : `Rezerwacje na ${formatDate(viewDay)}`}
+                ? "Kalendarz dla całego tygodnia"
+                : `Kalendarz na ${formatDate(viewDay)}`}
             </p>
           </div>
           <button
@@ -265,130 +428,156 @@ export function RoomOccupancyView({
           </button>
         </div>
 
-        <div className="divide-y divide-gray-200">
-          {(showAllWeek ? weekDates : [viewDay]).map((date) => {
-            const dayReservations = getRoomReservations(date);
+        <div className="p-4">
+          {/* Legenda */}
+          <div className="mb-4 flex flex-wrap gap-4 items-center">
+            <span className="text-sm font-medium text-gray-700">Legenda:</span>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-blue-100 border border-blue-200 rounded"></div>
+              <span className="text-xs text-gray-600">Fizjoterapia</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-green-100 border border-green-200 rounded"></div>
+              <span className="text-xs text-gray-600">Trening personalny</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
+              <span className="text-xs text-gray-600">Inne</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-2 bg-blue-500 rounded"></div>
+              <span className="text-xs text-gray-600">Pasek boczny wskazuje aktywną rezerwację</span>
+            </div>
+          </div>
+          
+          {renderCalendarView()}
+        </div>
+      </div>
 
-            if (dayReservations.length === 0) {
-              // Only show empty state message for the selected day in single day view
-              if (!showAllWeek) {
-                return (
-                  <div key={date.toISOString()} className="p-6 text-center">
-                    <p className="text-gray-500 py-8">
-                      Brak rezerwacji na ten dzień
-                    </p>
-                  </div>
-                );
-              }
-              return null;
+      {/* Modal ze szczegółami rezerwacji */}
+      {selectedReservation && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedReservation(null);
             }
-
-            return (
-              <div key={date.toISOString()} className="p-6">
-                <h4 className="text-md font-semibold text-gray-900 mb-4 capitalize">
-                  {formatDate(date)}
-                </h4>
-
-                <div className="space-y-4">
-                  {dayReservations.map((reservation) => (
-                    <div
-                      key={reservation.id}
-                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Clock className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium">
-                              {formatTime(reservation.startTime)} -{" "}
-                              {formatTime(reservation.endTime)}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <User className="w-4 h-4 text-gray-500" />
-                            <span>
-                              {getEmployeeName(reservation.employeeId)}
-                            </span>
-                          </div>
-                          <div
-                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getServiceTypeColor(reservation.serviceType)}`}
-                          >
-                            {getServiceTypeDisplay(reservation.serviceType)}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="text-sm text-gray-600 mb-1">
-                            Klient:
-                          </div>
-                          <div className="font-medium mb-2">
-                            {reservation.clientName}
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
-                            <Mail className="w-3 h-3" />
-                            <span>{reservation.clientEmail}</span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <Phone className="w-3 h-3" />
-                            <span>{reservation.clientPhone}</span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <DollarSign className="w-4 h-4 text-green-600" />
-                            <span className="font-medium text-green-600">
-                              {reservation.finalPrice} zł
-                            </span>
-                            {reservation.isDeadHour && (
-                              <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                                Martwa godzina
-                              </span>
-                            )}
-                          </div>
-                          <div
-                            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              reservation.status === "confirmed"
-                                ? "bg-green-100 text-green-800"
-                                : reservation.status === "completed"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {reservation.status === "confirmed"
-                              ? "Potwierdzona"
-                              : reservation.status === "completed"
-                                ? "Zakończona"
-                                : "Anulowana"}
-                          </div>
-                          {reservation.notes && (
-                            <div className="flex items-center space-x-2 mt-2 text-sm text-gray-600">
-                              <FileText className="w-3 h-3" />
-                              <span>Ma notatki</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Szczegóły rezerwacji
+                </h3>
+                <button
+                  onClick={() => setSelectedReservation(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Czas</label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Clock className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm">
+                      {formatTime(selectedReservation.startTime)} - {formatTime(selectedReservation.endTime)}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Data</label>
+                  <div className="text-sm mt-1">
+                    {formatDate(selectedReservation.startTime)}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
 
-        {weekDates.every((date) => getRoomReservations(date).length === 0) && (
-          <div className="p-12 text-center">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Brak rezerwacji
-            </h3>
-            <p className="text-gray-600">
-              W tym tygodniu nie ma żadnych rezerwacji dla tej sali
-            </p>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Pracownik</label>
+                <div className="flex items-center space-x-2 mt-1">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm">{getEmployeeName(selectedReservation.employeeId)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600">Klient</label>
+                <div className="mt-1 space-y-1">
+                  <div className="text-sm font-medium">{selectedReservation.clientName}</div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Mail className="w-3 h-3" />
+                    <span>{selectedReservation.clientEmail}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <Phone className="w-3 h-3" />
+                    <span>{selectedReservation.clientPhone}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Typ usługi</label>
+                  <div className="mt-1">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getServiceTypeColor(selectedReservation.serviceType)}`}>
+                      {getServiceTypeDisplay(selectedReservation.serviceType)}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Cena</label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-600">
+                      {selectedReservation.finalPrice} zł
+                    </span>
+                    {selectedReservation.isDeadHour && (
+                      <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                        Martwa godzina
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-600">Status</label>
+                <div className="mt-1">
+                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                    selectedReservation.status === "confirmed"
+                      ? "bg-green-100 text-green-800"
+                      : selectedReservation.status === "completed"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-red-100 text-red-800"
+                  }`}>
+                    {selectedReservation.status === "confirmed"
+                      ? "Potwierdzona"
+                      : selectedReservation.status === "completed"
+                        ? "Zakończona"
+                        : "Anulowana"}
+                  </span>
+                </div>
+              </div>
+
+              {selectedReservation.notes && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Notatki</label>
+                  <div className="flex items-start space-x-2 mt-1">
+                    <FileText className="w-4 h-4 text-gray-500 mt-0.5" />
+                    <span className="text-sm text-gray-700">{selectedReservation.notes}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

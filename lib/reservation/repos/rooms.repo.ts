@@ -29,6 +29,33 @@ export class RoomsRepository {
   }
 
   /**
+   * Get all rooms belonging to a specific owner (across all locations)
+   */
+  async getRoomsByOwnerId(ownerId: string) {
+    const result = await this.db
+      .select({
+        room: rooms,
+        location: {
+          id: locations.id,
+          name: locations.name,
+        },
+      })
+      .from(rooms)
+      .innerJoin(locations, eq(rooms.locationId, locations.id))
+      .where(eq(locations.ownerId, ownerId))
+      .orderBy(locations.name, rooms.name);
+
+    return result.map(({ room, location }) => ({
+      ...room,
+      serviceTypes: JSON.parse(room.serviceTypes),
+      equipment: JSON.parse(room.equipment || "[]"),
+      createdAt: room.createdAt || new Date().toISOString(),
+      updatedAt: room.updatedAt || new Date().toISOString(),
+      location,
+    }));
+  }
+
+  /**
    * Get a single room by ID (with location ownership verification)
    */
   async getRoomById(roomId: string, ownerId: string) {
