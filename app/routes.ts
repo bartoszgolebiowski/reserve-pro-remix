@@ -24,6 +24,8 @@ export default [
       route("reservations", "routes/dashboard.owner.reservations.tsx", [
         route("new", "routes/dashboard.owner.reservations.new.tsx"),
       ]),
+      route("pricing-config", "routes/dashboard.owner.pricing-config.tsx"),
+      route("monitoring", "routes/dashboard.owner.monitoring.tsx"),
     ]),
     route("dashboard/employee", "routes/dashboard.employee.tsx"),
   ]),
@@ -31,4 +33,5 @@ export default [
   route("auth/login", "routes/auth.login.tsx"),
   route("auth/register", "routes/auth.register.tsx"),
   route("auth/register/success", "routes/auth.register.success.tsx"),
+  route("api/owner/price-preview", "routes/api.owner.price-preview.tsx"),
 ] satisfies RouteConfig;

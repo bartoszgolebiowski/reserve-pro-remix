@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users } from "lucide-react";
+import { BarChart3, Calendar, MapPin, Settings, Users } from "lucide-react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Link, Outlet } from "react-router";
 
@@ -78,6 +78,46 @@ export default function OwnerDashboard() {
               </h3>
               <p className="text-gray-600 text-sm">
                 Twórz i zarządzaj rezerwacjami
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Monitoring obłożenia */}
+        <Link
+          to="/dashboard/owner/monitoring"
+          className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <BarChart3 className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Monitoring
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Śledź obłożenie i przychody
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Konfiguracja cenowa */}
+        <Link
+          to="/dashboard/owner/pricing-config"
+          className="block p-6 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-teal-100 rounded-lg">
+              <Settings className="w-6 h-6 text-teal-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Cennik
+              </h3>
+              <p className="text-gray-600 text-sm">
+                Konfiguruj stawki i ceny
               </p>
             </div>
           </div>
