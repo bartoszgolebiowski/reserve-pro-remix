@@ -1,19 +1,23 @@
 import { Calendar, Clock, FileText, Mail, Phone, User } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
+import type { PricingConfigDTO } from "~/lib/pricing/types";
 import type { AvailabilitySlot, OwnerReservationFormData } from "~/lib/types";
+import { PriceInfo } from "../PriceInfo";
 
 interface ReservationFormProps {
   formData: Partial<OwnerReservationFormData>;
   onSubmit: (data: Partial<OwnerReservationFormData>) => void;
   // Optional list of already-occupied slots for the selected room/employee
   occupiedSlots?: AvailabilitySlot[];
+  pricingConfig: PricingConfigDTO;
 }
 
 export function ReservationForm({
   formData,
   onSubmit,
   occupiedSlots,
+  pricingConfig,
 }: ReservationFormProps) {
   const [localData, setLocalData] = useState({
     clientName: formData.clientName || "",
@@ -39,6 +43,106 @@ export function ReservationForm({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [priceBreakdown, setPriceBreakdown] = useState<{
+    baseRate: number;
+    employeeRate?: number;
+    finalBaseRate: number;
+    isDeadHour: boolean;
+    deadHourDiscount?: number;
+    timeMultiplier: number;
+    discountAmount: number;
+    finalPrice: number;
+  } | null>(null);
+
+  // Calculate price breakdown locally
+  const calculatePriceBreakdown = (
+    startTime: string,
+    durationMinutes: number,
+    serviceType: string
+  ) => {
+    if (!startTime || !durationMinutes || !serviceType) {
+      setPriceBreakdown(null);
+      return;
+    }
+
+    const start = parseDateTimeLocal(startTime);
+    const durationHours = durationMinutes / 60;
+
+    // Get base rate from config
+    let baseRate = 0;
+    switch (serviceType) {
+      case "physiotherapy":
+        baseRate = pricingConfig.baseRatePhysiotherapy;
+        break;
+      case "personal_training":
+        baseRate = pricingConfig.baseRatePersonalTraining;
+        break;
+      case "other":
+        baseRate = pricingConfig.baseRateOther;
+        break;
+    }
+
+    // Use base rate as final base rate (no employee rate in this context)
+    const finalBaseRate = baseRate;
+
+    // Check if it's dead hour
+    const hour = start.getHours();
+    let isDeadHour = false;
+    if (pricingConfig.deadHoursStart <= pricingConfig.deadHoursEnd) {
+      isDeadHour =
+        hour >= pricingConfig.deadHoursStart &&
+        hour < pricingConfig.deadHoursEnd;
+    } else {
+      // Dead hours cross midnight
+      isDeadHour =
+        hour >= pricingConfig.deadHoursStart ||
+        hour < pricingConfig.deadHoursEnd;
+    }
+
+    // Calculate time multiplier (weekday/weekend)
+    const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
+    const timeMultiplier =
+      dayOfWeek === 0 || dayOfWeek === 6
+        ? pricingConfig.weekendMultiplier
+        : pricingConfig.weekdayMultiplier;
+
+    // Calculate discount
+    let discountAmount = 0;
+    let deadHourDiscount: number | undefined;
+    if (isDeadHour) {
+      deadHourDiscount = pricingConfig.deadHourDiscount;
+      discountAmount =
+        finalBaseRate * durationHours * timeMultiplier * deadHourDiscount;
+    }
+
+    // Calculate final price
+    const basePrice = finalBaseRate * durationHours * timeMultiplier;
+    const finalPrice = basePrice - discountAmount;
+
+    setPriceBreakdown({
+      baseRate,
+      finalBaseRate,
+      isDeadHour,
+      deadHourDiscount,
+      timeMultiplier,
+      discountAmount,
+      finalPrice,
+    });
+  };
+
+  // Update price when relevant data changes
+  useEffect(() => {
+    calculatePriceBreakdown(
+      localData.startTime,
+      localData.durationMinutes,
+      localData.serviceType
+    );
+  }, [
+    localData.startTime,
+    localData.durationMinutes,
+    localData.serviceType,
+    pricingConfig,
+  ]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -179,7 +283,7 @@ export function ReservationForm({
     if (roomId) {
       setSearchParams(
         { roomId, date: dateStr },
-        { replace: true ,preventScrollReset: true}
+        { replace: true, preventScrollReset: true }
       );
     }
   }
@@ -480,6 +584,9 @@ export function ReservationForm({
             </div>
           </div>
         </div>
+
+        {/* Price Information */}
+        <PriceInfo breakdown={priceBreakdown} />
 
         {/* Notes */}
         <div>

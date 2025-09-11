@@ -9,6 +9,7 @@ import {
 } from "react-router";
 import { ReservationWizard } from "~/components/owner/reservations/wizard/ReservationWizard";
 import { authContainer } from "~/lib/auth/container";
+import { pricingOccupancyContainer } from "~/lib/pricing/container";
 import { reservationContainer } from "~/lib/reservation/container";
 import type {
   AvailabilitySlot, OwnerReservationFormData,
@@ -64,12 +65,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       );
     }
 
+    // Pobierz konfigurację cenową właściciela
+    const pricingConfig = await pricingOccupancyContainer.pricingConfigService.getForOwner(ownerId);
+
     return {
       ownerId,
       locations,
       rooms,
       employees,
       occupiedSlots,
+      pricingConfig,
     };
   } catch (error) {
     console.error("Error loading reservation data:", error);
@@ -176,7 +181,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function NewReservation() {
-  const { ownerId, locations, rooms, employees, occupiedSlots } =
+  const { ownerId, locations, rooms, employees, occupiedSlots, pricingConfig } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
@@ -293,6 +298,7 @@ export default function NewReservation() {
           rooms={rooms}
           employees={employees}
           occupiedSlots={occupiedSlots}
+          pricingConfig={pricingConfig}
           onStepChange={handleStepChange}
           onDataChange={handleDataChange}
           onComplete={handleComplete}

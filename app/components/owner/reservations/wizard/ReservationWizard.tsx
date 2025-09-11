@@ -1,4 +1,5 @@
 import { Form, useSearchParams } from "react-router";
+import type { PricingConfigDTO } from "~/lib/pricing/types";
 import type {
   AvailabilitySlot,
   Employee,
@@ -21,6 +22,7 @@ interface ReservationWizardProps {
   rooms: Room[];
   employees: Employee[];
   occupiedSlots?: AvailabilitySlot[];
+  pricingConfig: PricingConfigDTO;
   onStepChange: (step: ReservationWizardStep) => void;
   onDataChange: (data: Partial<OwnerReservationFormData>) => void;
   onComplete: (data: OwnerReservationFormData) => void;
@@ -34,6 +36,7 @@ export function ReservationWizard({
   rooms,
   employees,
   occupiedSlots,
+  pricingConfig,
   onStepChange,
   onDataChange,
   onComplete,
@@ -175,6 +178,7 @@ export function ReservationWizard({
             formData={formData}
             onSubmit={handleDetailsSubmit}
             occupiedSlots={occupiedSlots}
+            pricingConfig={pricingConfig}
           />
         )}
 
