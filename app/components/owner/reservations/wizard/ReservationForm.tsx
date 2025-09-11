@@ -1,6 +1,6 @@
 import { Calendar, Clock, FileText, Mail, Phone, User } from "lucide-react";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import type { AvailabilitySlot, OwnerReservationFormData } from "~/lib/types";
 
 interface ReservationFormProps {
@@ -10,7 +10,11 @@ interface ReservationFormProps {
   occupiedSlots?: AvailabilitySlot[];
 }
 
-export function ReservationForm({ formData, onSubmit, occupiedSlots }: ReservationFormProps) {
+export function ReservationForm({
+  formData,
+  onSubmit,
+  occupiedSlots,
+}: ReservationFormProps) {
   const [localData, setLocalData] = useState({
     clientName: formData.clientName || "",
     clientEmail: formData.clientEmail || "",
@@ -76,15 +80,19 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
       }
 
       if (occupiedSlots?.length) {
-        const end = computeEndTimeISO(localData.startTime, localData.durationMinutes);
-        const hasConflict = occupiedSlots.some(slot => {
+        const end = computeEndTimeISO(
+          localData.startTime,
+          localData.durationMinutes
+        );
+        const hasConflict = occupiedSlots.some((slot) => {
           const slotStart = new Date(slot.startTime);
           const slotEnd = new Date(slot.endTime);
           return start < slotEnd && end > slotStart;
         });
-        
+
         if (hasConflict) {
-          newErrors.startTime = "Wybrany termin koliduje z istniejącą rezerwacją";
+          newErrors.startTime =
+            "Wybrany termin koliduje z istniejącą rezerwacją";
         }
       }
     }
@@ -111,7 +119,6 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
       });
     }
   };
-
 
   function computeEndTimeISO(startISO: string, minutes: number) {
     const start = parseDateTimeLocal(startISO);
@@ -155,8 +162,7 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
     return new Date(y, (mo || 1) - 1, d || 1, Number(hh), Number(mm), 0, 0);
   }
 
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   function handleDateChange(dateStr: string) {
     const time = getTimePart(localData.startTime);
@@ -169,9 +175,12 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
     }));
 
     // Zaktualizuj URL z nową datą, zachowując roomId
-    const roomId = searchParams.get('roomId');
+    const roomId = searchParams.get("roomId");
     if (roomId) {
-      navigate(`?roomId=${roomId}&date=${dateStr}`);
+      setSearchParams(
+        { roomId, date: dateStr },
+        { replace: true ,preventScrollReset: true}
+      );
     }
   }
 
@@ -186,10 +195,16 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
     }));
   }
 
-  function isTimeOccupied(dateStr: string, timeStr: string, slots?: AvailabilitySlot[]) {
+  function isTimeOccupied(
+    dateStr: string,
+    timeStr: string,
+    slots?: AvailabilitySlot[]
+  ) {
     if (!slots || slots.length === 0) return false;
     const candidateStart = new Date(`${dateStr}T${timeStr}`);
-    const candidateEnd = new Date(candidateStart.getTime() + localData.durationMinutes * 60000);
+    const candidateEnd = new Date(
+      candidateStart.getTime() + localData.durationMinutes * 60000
+    );
     for (const s of slots) {
       const slotStart = new Date(s.startTime);
       const slotEnd = new Date(s.endTime);
@@ -213,10 +228,36 @@ export function ReservationForm({ formData, onSubmit, occupiedSlots }: Reservati
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Client Information */}
         <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <User className="w-5 h-5 mr-2" />
-            Dane Klienta
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <User className="w-5 h-5 mr-2" />
+              Dane Klienta
+            </h3>
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  // fill with anonymous sample data and clear related errors
+                  setLocalData((prev) => ({
+                    ...prev,
+                    clientName: "Jan Nowak",
+                    clientEmail: "jan.nowak@example.com",
+                    clientPhone: "+48 123 456 789",
+                  }));
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.clientName;
+                    delete next.clientEmail;
+                    delete next.clientPhone;
+                    return next;
+                  });
+                }}
+                className="px-3 py-1 text-sm bg-gray-100 border border-gray-200 rounded-md hover:bg-gray-200"
+              >
+                Anonimowy użytkownik
+              </button>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Client Name */}

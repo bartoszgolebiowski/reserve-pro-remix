@@ -1,11 +1,11 @@
-import { Form, useNavigate, useSearchParams } from "react-router";
+import { Form, useSearchParams } from "react-router";
 import type {
   AvailabilitySlot,
   Employee,
   Location,
   OwnerReservationFormData,
   ReservationWizardStep,
-  Room
+  Room,
 } from "~/lib/types";
 import { EmployeeSelector } from "./EmployeeSelector";
 import { LocationSelector } from "./LocationSelector";
@@ -39,7 +39,13 @@ export function ReservationWizard({
   onComplete,
 }: ReservationWizardProps) {
   const handleNext = () => {
-    const steps: ReservationWizardStep[] = ["location", "room", "employee", "details", "summary"];
+    const steps: ReservationWizardStep[] = [
+      "location",
+      "room",
+      "employee",
+      "details",
+      "summary",
+    ];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       onStepChange(steps[currentIndex + 1]);
@@ -47,15 +53,20 @@ export function ReservationWizard({
   };
 
   const handlePrevious = () => {
-    const steps: ReservationWizardStep[] = ["location", "room", "employee", "details", "summary"];
+    const steps: ReservationWizardStep[] = [
+      "location",
+      "room",
+      "employee",
+      "details",
+      "summary",
+    ];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       onStepChange(steps[currentIndex - 1]);
     }
   };
 
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const handleLocationSelect = (locationId: string) => {
     onDataChange({ locationId });
@@ -63,8 +74,12 @@ export function ReservationWizard({
   };
 
   const handleRoomSelect = (roomId: string) => {
-    const currentDate = searchParams.get('date') || new Date().toISOString().slice(0, 10);
-    navigate(`?roomId=${roomId}&date=${currentDate}`);
+    const currentDate =
+      searchParams.get("date") || new Date().toISOString().slice(0, 10);
+    setSearchParams(
+      { roomId, date: currentDate },
+      { replace: true, preventScrollReset: true }
+    );
     onDataChange({ roomId });
     handleNext();
   };
@@ -138,7 +153,9 @@ export function ReservationWizard({
         {currentStep === "room" && formData.locationId && (
           <RoomSelector
             locationId={formData.locationId}
-            rooms={rooms.filter(room => room.locationId === formData.locationId)}
+            rooms={rooms.filter(
+              (room) => room.locationId === formData.locationId
+            )}
             selectedRoomId={formData.roomId}
             onRoomSelect={handleRoomSelect}
           />
@@ -204,17 +221,53 @@ export function ReservationWizard({
           ) : (
             <Form method="post" className="inline">
               {/* Hidden fields for form submission */}
-              <input type="hidden" name="locationId" value={formData.locationId || ""} />
-              <input type="hidden" name="roomId" value={formData.roomId || ""} />
-              <input type="hidden" name="employeeId" value={formData.employeeId || ""} />
-              <input type="hidden" name="clientName" value={formData.clientName || ""} />
-              <input type="hidden" name="clientEmail" value={formData.clientEmail || ""} />
-              <input type="hidden" name="clientPhone" value={formData.clientPhone || ""} />
-              <input type="hidden" name="serviceType" value={formData.serviceType || ""} />
-              <input type="hidden" name="startTime" value={formData.startTime?.toISOString() || ""} />
-              <input type="hidden" name="endTime" value={formData.endTime?.toISOString() || ""} />
+              <input
+                type="hidden"
+                name="locationId"
+                value={formData.locationId || ""}
+              />
+              <input
+                type="hidden"
+                name="roomId"
+                value={formData.roomId || ""}
+              />
+              <input
+                type="hidden"
+                name="employeeId"
+                value={formData.employeeId || ""}
+              />
+              <input
+                type="hidden"
+                name="clientName"
+                value={formData.clientName || ""}
+              />
+              <input
+                type="hidden"
+                name="clientEmail"
+                value={formData.clientEmail || ""}
+              />
+              <input
+                type="hidden"
+                name="clientPhone"
+                value={formData.clientPhone || ""}
+              />
+              <input
+                type="hidden"
+                name="serviceType"
+                value={formData.serviceType || ""}
+              />
+              <input
+                type="hidden"
+                name="startTime"
+                value={formData.startTime?.toISOString() || ""}
+              />
+              <input
+                type="hidden"
+                name="endTime"
+                value={formData.endTime?.toISOString() || ""}
+              />
               <input type="hidden" name="notes" value={formData.notes || ""} />
-              
+
               <button
                 type="submit"
                 disabled={!isFormComplete()}
