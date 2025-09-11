@@ -2,13 +2,14 @@ import { ArrowLeft, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import type {
-    Employee,
-    Location,
-    OwnerReservationFormData,
-    ReservationWizardStep,
-    Room
+  AvailabilitySlot,
+  Employee,
+  Location,
+  OwnerReservationFormData,
+  ReservationWizardStep,
+  Room
 } from "~/lib/types";
-import { ReservationWizard } from "../../../reservations/ReservationWizard";
+import { ReservationWizard } from "./ReservationWizard";
 import { WizardProgress } from "./WizardProgress";
 
 interface NewReservationProps {
@@ -16,6 +17,7 @@ interface NewReservationProps {
   locations: Location[];
   rooms: Room[];
   employees: Employee[];
+  occupiedSlots: AvailabilitySlot[];
   error?: string;
 }
 
@@ -24,6 +26,7 @@ export function NewReservation({
   locations,
   rooms,
   employees,
+  occupiedSlots,
   error
 }: NewReservationProps) {
   const [currentStep, setCurrentStep] = useState<ReservationWizardStep>("location");
@@ -88,6 +91,7 @@ export function NewReservation({
           locations={locations}
           rooms={rooms}
           employees={employees}
+          occupiedSlots={occupiedSlots}
           onStepChange={handleStepChange}
           onDataChange={handleDataChange}
           onComplete={handleComplete}

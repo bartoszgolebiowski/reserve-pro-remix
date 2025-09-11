@@ -299,15 +299,15 @@ export class ReservationService {
         // const room = await this.roomsRepo.getRoomById(data.roomId, ownerId);
 
         if (employee) {
-          const isCompatible = this.checkServiceTypeCompatibility(
-            data.serviceType,
-            employee.employeeType,
-            [] // Pusta lista dla sal - nie mamy dostępu do danych sali
-          );
+          // const isCompatible = this.checkServiceTypeCompatibility(
+          //   data.serviceType,
+          //   employee.employeeType,
+          //   [] // Pusta lista dla sal - nie mamy dostępu do danych sali
+          // );
 
-          if (!isCompatible) {
-            errors.push("Wybrany pracownik nie może obsługiwać tego typu usługi");
-          }
+          // if (!isCompatible) {
+          //   errors.push("Wybrany pracownik nie może obsługiwać tego typu usługi");
+          // }
         }
       } catch (error) {
         errors.push("Błąd podczas sprawdzania zgodności pracownika");

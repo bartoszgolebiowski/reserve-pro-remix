@@ -81,6 +81,33 @@ export class AvailabilityService {
    * @param endTime - Czas zakończenia
    * @returns Lista dostępnych pracowników
    */
+  async getOccupiedSlotsForRoom(
+    roomId: string,
+    date: Date,
+    windowHours = 24
+  ): Promise<AvailabilitySlot[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(windowHours, 0, 0, 0);
+    
+    const reservations = await this.reservationsRepo.getReservationsByRoomIdAndDateRange(
+      roomId,
+      startOfDay,
+      endOfDay
+    );
+    
+    return reservations
+      .filter(r => r.status !== "cancelled")
+      .map(r => ({
+        startTime: r.startTime,
+        endTime: r.endTime,
+        employeeId: r.employeeId,
+        isAvailable: false,
+      }));
+  }
+
   async getAvailableEmployees(
     locationId: string,
     roomId: string,

@@ -2,17 +2,17 @@ import { CheckCircle } from "lucide-react";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
-    redirect,
-    useActionData,
-    useLoaderData,
-    useSubmit
+  redirect,
+  useActionData,
+  useLoaderData,
+  useSubmit
 } from "react-router";
 import { ReservationWizard } from "~/components/owner/reservations/wizard/ReservationWizard";
 import { authContainer } from "~/lib/auth/container";
 import { reservationContainer } from "~/lib/reservation/container";
 import type {
-    OwnerReservationFormData,
-    ReservationWizardStep,
+  AvailabilitySlot, OwnerReservationFormData,
+  ReservationWizardStep
 } from "~/lib/types";
 
 export function meta() {
@@ -25,19 +25,22 @@ export function meta() {
 /**
  * Loader - pobiera dane potrzebne do utworzenia rezerwacji
  */
-export async function loader({ request }: LoaderFunctionArgs) {
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Pobierz dane użytkownika z sesji
   const sessionData = await authContainer.sessionService.getSession(request);
   if (!sessionData?.user) {
     throw redirect("/auth/login");
   }
 
-  const ownerId = sessionData.user.id;
-
   // Sprawdź czy użytkownik to owner
   if (sessionData.user.role !== "OWNER") {
     throw new Error("Brak uprawnień do tworzenia rezerwacji");
   }
+
+  const ownerId = sessionData.user.id;
+  const url = new URL(request.url);
+  const roomId = url.searchParams.get('roomId');
+  const selectedDate = url.searchParams.get('date') || new Date().toISOString().slice(0, 10);
 
   try {
     // Pobierz lokalizacje właściciela
@@ -52,11 +55,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const employees =
       await reservationContainer.employeesRepo.getEmployeesByOwnerId(ownerId);
 
+    // Pobierz zajęte sloty dla wybranej sali (jeśli sala jest wybrana)
+    let occupiedSlots: AvailabilitySlot[] = [];
+    if (roomId && selectedDate) {
+      occupiedSlots = await reservationContainer.availabilityService.getOccupiedSlotsForRoom(
+        roomId,
+        new Date(selectedDate)
+      );
+    }
+
     return {
       ownerId,
       locations,
       rooms,
       employees,
+      occupiedSlots,
     };
   } catch (error) {
     console.error("Error loading reservation data:", error);
@@ -163,7 +176,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function NewReservation() {
-  const { ownerId, locations, rooms, employees } =
+  const { ownerId, locations, rooms, employees, occupiedSlots } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const submit = useSubmit();
@@ -279,6 +292,7 @@ export default function NewReservation() {
           locations={locations}
           rooms={rooms}
           employees={employees}
+          occupiedSlots={occupiedSlots}
           onStepChange={handleStepChange}
           onDataChange={handleDataChange}
           onComplete={handleComplete}

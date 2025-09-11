@@ -1,5 +1,6 @@
-import { Form } from "react-router";
+import { Form, useNavigate, useSearchParams } from "react-router";
 import type {
+  AvailabilitySlot,
   Employee,
   Location,
   OwnerReservationFormData,
@@ -19,6 +20,7 @@ interface ReservationWizardProps {
   locations: Location[];
   rooms: Room[];
   employees: Employee[];
+  occupiedSlots?: AvailabilitySlot[];
   onStepChange: (step: ReservationWizardStep) => void;
   onDataChange: (data: Partial<OwnerReservationFormData>) => void;
   onComplete: (data: OwnerReservationFormData) => void;
@@ -31,6 +33,7 @@ export function ReservationWizard({
   locations,
   rooms,
   employees,
+  occupiedSlots,
   onStepChange,
   onDataChange,
   onComplete,
@@ -51,12 +54,17 @@ export function ReservationWizard({
     }
   };
 
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
   const handleLocationSelect = (locationId: string) => {
     onDataChange({ locationId });
     handleNext();
   };
 
   const handleRoomSelect = (roomId: string) => {
+    const currentDate = searchParams.get('date') || new Date().toISOString().slice(0, 10);
+    navigate(`?roomId=${roomId}&date=${currentDate}`);
     onDataChange({ roomId });
     handleNext();
   };
@@ -149,6 +157,7 @@ export function ReservationWizard({
           <ReservationForm
             formData={formData}
             onSubmit={handleDetailsSubmit}
+            occupiedSlots={occupiedSlots}
           />
         )}
 
