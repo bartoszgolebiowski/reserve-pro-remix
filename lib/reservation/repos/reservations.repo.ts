@@ -63,6 +63,52 @@ export class ReservationsRepository {
   }
 
   /**
+   * Pobiera rezerwacje dla danego pracownika w określonym przedziale czasowym
+   * @param employeeId - ID pracownika
+   * @param startDate - Data początkowa
+   * @param endDate - Data końcowa
+   * @returns Lista rezerwacji w przedziale czasowym
+   */
+  async getReservationsByEmployeeIdAndDateRange(
+    employeeId: string,
+    startDate: Date,
+    endDate: Date
+  ) {
+    const results = await this.db
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.employeeId, employeeId),
+          gte(reservations.startTime, startDate.toISOString()),
+          lte(reservations.startTime, endDate.toISOString())
+        )
+      )
+      .orderBy(reservations.startTime);
+
+    return results.map(this.mapDbReservationToReservation);
+  }
+
+  /**
+   * Pobiera rezerwację po ID
+   * @param reservationId - ID rezerwacji
+   * @returns Rezerwacja lub null jeśli nie znaleziono
+   */
+  async getReservationById(reservationId: string) {
+    const result = await this.db
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, reservationId))
+      .limit(1);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    return this.mapDbReservationToReservation(result[0]);
+  }
+
+  /**
    * Tworzy nową rezerwację
    * @param data - Dane rezerwacji
    * @returns Utworzona rezerwacja
@@ -154,6 +200,25 @@ export class ReservationsRepository {
     const result = await this.db
       .delete(reservations)
       .where(eq(reservations.id, id))
+      .returning({ id: reservations.id });
+
+    return result.length > 0;
+  }
+
+  /**
+   * Aktualizuje status rezerwacji
+   * @param reservationId - ID rezerwacji
+   * @param status - Nowy status
+   * @returns Czy operacja się powiodła
+   */
+  async updateReservationStatus(reservationId: string, status: "confirmed" | "cancelled" | "completed") {
+    const result = await this.db
+      .update(reservations)
+      .set({ 
+        status,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(reservations.id, reservationId))
       .returning({ id: reservations.id });
 
     return result.length > 0;

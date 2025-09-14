@@ -3,7 +3,7 @@
  */
 import { and, eq } from "drizzle-orm";
 import { type DrizzleDatabase } from "../../../db";
-import { locations, rooms } from "../../../db/schema/reservations";
+import { employeeLocations, locations, rooms } from "../../../db/schema/reservations";
 import type { RoomFormData } from "../../types";
 
 export class RoomsRepository {
@@ -151,6 +151,34 @@ export class RoomsRepository {
       createdAt: room.createdAt || new Date().toISOString(),
       updatedAt: room.updatedAt || new Date().toISOString(),
     };
+  }
+
+  /**
+   * Get all rooms for locations where employee works
+   */
+  async getRoomsByEmployeeId(employeeId: string) {
+    const result = await this.db
+      .select({
+        id: rooms.id,
+        name: rooms.name,
+        serviceTypes: rooms.serviceTypes,
+        locationId: rooms.locationId,
+        equipment: rooms.equipment,
+        createdAt: rooms.createdAt,
+        updatedAt: rooms.updatedAt,
+      })
+      .from(rooms)
+      .innerJoin(employeeLocations, eq(rooms.locationId, employeeLocations.locationId))
+      .where(eq(employeeLocations.employeeId, employeeId))
+      .orderBy(rooms.createdAt);
+
+    return result.map((room) => ({
+      ...room,
+      serviceTypes: JSON.parse(room.serviceTypes),
+      equipment: JSON.parse(room.equipment || "[]"),
+      createdAt: room.createdAt || new Date().toISOString(),
+      updatedAt: room.updatedAt || new Date().toISOString(),
+    }));
   }
 
   /**

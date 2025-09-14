@@ -80,6 +80,7 @@ export type Reservation = {
   id: string;
   employeeId: string;
   roomId: string;
+  locationId?: string; // Added for location filtering
   clientName: string;
   clientEmail: string;
   clientPhone: string;

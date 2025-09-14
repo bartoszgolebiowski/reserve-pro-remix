@@ -6,8 +6,7 @@ import {
   Form,
   redirect,
   useActionData,
-  useNavigation,
-  useSearchParams,
+  useNavigation
 } from "react-router";
 import { authContainer } from "~/lib/auth/container";
 
@@ -69,7 +68,6 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function LoginPage() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const [searchParams] = useSearchParams();
 
   const isSubmitting = navigation.state === "submitting";
 

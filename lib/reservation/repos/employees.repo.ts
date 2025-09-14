@@ -156,6 +156,29 @@ export class EmployeesRepository {
   }
 
   /**
+   * Pobiera pełne dane lokalizacji pracownika wraz z stawkami godzinowymi
+   * @param employeeId - ID pracownika
+   * @returns Lista lokalizacji pracownika z pełnymi danymi
+   */
+  async getEmployeeLocationsWithDetails(employeeId: string) {
+    const results = await this.db
+      .select({
+        id: locations.id,
+        name: locations.name,
+        address: locations.address,
+        city: locations.city,
+        ownerId: locations.ownerId,
+        hourlyRate: employeeLocations.hourlyRate,
+        createdAt: employeeLocations.createdAt,
+      })
+      .from(employeeLocations)
+      .innerJoin(locations, eq(employeeLocations.locationId, locations.id))
+      .where(eq(employeeLocations.employeeId, employeeId));
+
+    return results;
+  }
+
+  /**
    * Przypisuje pracownika do lokalizacji z określoną stawką godzinową
    * @param employeeId - ID pracownika
    * @param locationId - ID lokalizacji

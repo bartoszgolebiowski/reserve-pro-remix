@@ -33,5 +33,5 @@ export default [
   route("auth/login", "routes/auth.login.tsx"),
   route("auth/register", "routes/auth.register.tsx"),
   route("auth/register/success", "routes/auth.register.success.tsx"),
-  route("api/owner/price-preview", "routes/api.owner.price-preview.tsx"),
+  route("api/employee/reservations", "routes/api.employee.reservations.tsx"),
 ] satisfies RouteConfig;
