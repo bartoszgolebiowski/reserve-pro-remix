@@ -22,6 +22,29 @@ export default function ReservationModal({
 }: Props) {
   if (!reservation) return null;
 
+  const handleDelete = async () => {
+    if (window.confirm("Czy na pewno chcesz usunąć tę rezerwację?")) {
+      try {
+        const response = await fetch("/api/employee/reservations", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id: reservation.id }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete reservation");
+        }
+
+        window.location.reload();
+      } catch (error) {
+        console.error("Error deleting reservation:", error);
+        alert("Wystąpił błąd podczas usuwania rezerwacji");
+      }
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -35,12 +58,14 @@ export default function ReservationModal({
             <h3 className="text-lg font-semibold text-gray-900">
               Szczegóły wizyty
             </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              ✕
-            </button>
+            <div>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
         <div className="p-6 space-y-4">
@@ -70,7 +95,7 @@ export default function ReservationModal({
             <div className="flex items-center space-x-2 mt-1">
               <MapPin className="w-4 h-4 text-gray-500" />
               <span className="text-sm">
-                {getLocationName(reservation.locationId)}
+                {getLocationName(reservation.locationId!) || "Nieznana lokalizacja"}
               </span>
             </div>
             {reservation.roomName && (
@@ -154,6 +179,22 @@ export default function ReservationModal({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Footer with actions */}
+        <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+          <button
+            onClick={handleDelete}
+            className="text-red-600 hover:text-red-800 transition-colors px-3 py-1 rounded-md hover:bg-red-50"
+          >
+            Usuń
+          </button>
+          <button
+            onClick={onClose}
+            className="px-3 py-1 bg-gray-100 rounded-md hover:bg-gray-200 text-gray-700"
+          >
+            Zamknij
+          </button>
         </div>
       </div>
     </div>

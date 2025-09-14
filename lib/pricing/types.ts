@@ -78,14 +78,18 @@ export interface OccupancySlot {
   status: "confirmed" | "cancelled" | "completed";
   finalPrice: number;
   isDeadHour: boolean;
+  hourlyRate: number;
 }
 
 export interface OccupancyStats {
   totalSlots: number;
   confirmedSlots: number;
   totalRevenue: number;
+  totalEmployeeCost: number;
+  totalProfit: number;
   deadHourSlots: number;
   deadHourRevenue: number;
+  deadHourProfit: number;
   occupancyRate: number; // 0-1
 }
 

@@ -55,12 +55,17 @@ export class OccupancyRepository {
         status: reservations.status,
         finalPrice: reservations.finalPrice,
         isDeadHour: reservations.isDeadHour,
+        hourlyRate: employeeLocations.hourlyRate,
       })
       .from(reservations)
       .innerJoin(employees, eq(reservations.employeeId, employees.id))
       .innerJoin(users, eq(employees.id, users.id))
       .innerJoin(rooms, eq(reservations.roomId, rooms.id))
       .innerJoin(locations, eq(rooms.locationId, locations.id))
+      .innerJoin(employeeLocations, and(
+        eq(employeeLocations.employeeId, employees.id),
+        eq(employeeLocations.locationId, rooms.locationId)
+      ))
       .where(and(...conditions));
 
     return results.map(row => ({
@@ -79,6 +84,7 @@ export class OccupancyRepository {
       status: row.status as "confirmed" | "cancelled" | "completed",
       finalPrice: row.finalPrice,
       isDeadHour: Boolean(row.isDeadHour),
+      hourlyRate: row.hourlyRate,
     }));
   }
 

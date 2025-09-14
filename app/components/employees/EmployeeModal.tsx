@@ -84,6 +84,9 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
         
         <Form method="post" className="space-y-4">
           <input type="hidden" name="intent" value={mode === 'edit' ? 'update-employee' : 'create-employee'} />
+          {mode === 'edit' && employee && (
+            <input type="hidden" name="employeeId" value={employee.id} />
+          )}
           
           <div className="grid grid-cols-2 gap-4">
             <div>

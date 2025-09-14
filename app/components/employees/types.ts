@@ -10,7 +10,9 @@ export interface Reservation {
   finalPrice: number;
   isDeadHour?: boolean;
   notes?: string;
-  locationId: string;
+  locationId?: string;
   roomId?: string;
   roomName?: string;
+  employeeId: string;
+  basePrice?: number;
 }

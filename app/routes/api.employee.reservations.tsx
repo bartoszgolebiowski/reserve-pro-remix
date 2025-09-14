@@ -143,10 +143,10 @@ async function handleUpdateReservation(request: Request, employeeId: string) {
   });
 }
 
-async function handleDeleteReservation(request: Request, employeeId: string) {
-  const url = new URL(request.url);
-  const reservationId = url.searchParams.get("id");
-  
+  async function handleDeleteReservation(request: Request, employeeId: string) {
+  const data = await request.json();
+  const reservationId = data.id;
+
   if (!reservationId) {
     return json({ error: "Brak ID rezerwacji" }, { status: 400 });
   }
@@ -160,23 +160,11 @@ async function handleDeleteReservation(request: Request, employeeId: string) {
     );
   }
 
-  // Sprawdzenie czy można anulować (np. minimum 24h wcześniej)
-  const now = new Date();
-  const timeDiff = reservation.startTime.getTime() - now.getTime();
-  const hoursDiff = timeDiff / (1000 * 60 * 60);
-
-  if (hoursDiff < 24) {
-    return json(
-      { error: "Rezerwację można anulować minimum 24 godziny wcześniej" },
-      { status: 400 }
-    );
-  }
-
-  // Aktualizacja statusu na "cancelled"
-  await reservationContainer.reservationsRepo.updateReservationStatus(reservationId, "cancelled");
+  // Usunięcie rezerwacji
+  await reservationContainer.reservationsRepo.deleteReservation(reservationId);
 
   return json({ 
     success: true,
-    message: "Rezerwacja została anulowana"
+    message: "Rezerwacja została usunięta"
   });
 }

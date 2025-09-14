@@ -6,6 +6,7 @@ import {
   type ReservationFormData,
   type Room,
 } from "./NewReservationModal";
+import ReservationModal from "./ReservationModal";
 
 // Types for employee calendar
 export interface EmployeeLocation {
@@ -53,6 +54,7 @@ export function EmployeeCalendarView({
     useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedHour, setSelectedHour] = useState<number | undefined>();
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
 
   // Calculate week dates
   const weekDates = useMemo(() => {
@@ -428,7 +430,18 @@ export function EmployeeCalendarView({
                     className={`p-1 border-r border-gray-100 ${
                       slot.isDeadHour ? "bg-gray-25" : "bg-white"
                     } hover:bg-blue-25 cursor-pointer transition-colors`}
-                    onClick={() => handleTimeSlotClick(date, slot.hour)}
+                    onClick={() => {
+                      // If there are no reservations in this slot, open new reservation flow
+                      if (dayReservations.length === 0) {
+                        // account for timezone offset as before
+                        const d = new Date(date);
+                        d.setDate(d.getDate() + 1);
+                        handleAddReservation(d, slot.hour);
+                      } else {
+                        // If there are reservations, open the first one in the modal
+                        setSelectedReservation(dayReservations[0]);
+                      }
+                    }}
                   >
                     {dayReservations.map((reservation) => (
                       <div
@@ -519,6 +532,31 @@ export function EmployeeCalendarView({
         rooms={rooms}
         selectedDate={selectedDate}
         selectedHour={selectedHour}
+      />
+
+      {/* Existing Reservation Modal */}
+      <ReservationModal
+        reservation={selectedReservation}
+        onClose={() => setSelectedReservation(null)}
+        formatTime={(date: Date) => date.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}
+        formatDate={(date: Date) => date.toLocaleDateString("pl-PL", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        getLocationName={(id: string) => locations.find(loc => loc.id === id)?.name || ""}
+        getServiceTypeDisplay={(type: string) => {
+          switch (type) {
+            case "physiotherapy": return "Fizjoterapia";
+            case "personal_training": return "Trening personalny";
+            case "other": return "Inne";
+            default: return type;
+          }
+        }}
+        getServiceTypeColor={(type: string) => {
+          switch (type) {
+            case "physiotherapy": return "bg-blue-100 text-blue-800";
+            case "personal_training": return "bg-green-100 text-green-800";
+            case "other": return "bg-gray-100 text-gray-800";
+            default: return "bg-gray-100 text-gray-800";
+          }
+        }}
       />
     </div>
   );

@@ -7,20 +7,30 @@ dotenv.config();
  */
 const envSchema = z.object({
   // Database configuration
-  DB_FILE_NAME: z.string().min(1),
-  
+  TURSO_CONNECTION_URL: z.string().url(),
+  TURSO_AUTH_TOKEN: z.string().min(10),
+
   // Auth configuration
-  SESSION_SECRET: z.string().min(20).default('change-this-in-production-this-is-a-very-long-secret'),
-  REFRESH_TOKEN_SECRET: z.string().min(20).default('change-this-refresh-token-secret-in-production'),
-  ACCESS_TOKEN_SECRET: z.string().min(20).default('change-this-access-token-secret-in-production'),
+  SESSION_SECRET: z
+    .string()
+    .min(20)
+    .default("change-this-in-production-this-is-a-very-long-secret"),
+  REFRESH_TOKEN_SECRET: z
+    .string()
+    .min(20)
+    .default("change-this-refresh-token-secret-in-production"),
+  ACCESS_TOKEN_SECRET: z
+    .string()
+    .min(20)
+    .default("change-this-access-token-secret-in-production"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
-  
+
   // Security settings
   MAX_LOGIN_ATTEMPTS: z.coerce.number().int().positive().default(5),
   ACCOUNT_LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15),
   PASSWORD_MIN_LENGTH: z.coerce.number().int().positive().default(8),
-  
+
   // Environment
   NODE_ENV: z
     .enum(["development", "production", "test"])

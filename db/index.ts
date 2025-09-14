@@ -14,10 +14,10 @@ export const createDatabaseSQLite = (url: string) =>
     connection: { url },
   });
 
-// export const db = createDatabaseTurso(
-//   env.TURSO_CONNECTION_URL,
-//   env.TURSO_AUTH_TOKEN
-// );
+export const db = createDatabaseTurso(
+  env.TURSO_CONNECTION_URL,
+  env.TURSO_AUTH_TOKEN
+);
 
-export const db = createDatabaseSQLite(env.DB_FILE_NAME);
+// export const db = createDatabaseSQLite(env.DB_FILE_NAME);
 export type DrizzleDatabase = typeof db;

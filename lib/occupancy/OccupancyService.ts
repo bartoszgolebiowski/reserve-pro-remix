@@ -2,10 +2,10 @@
  * Business service for occupancy monitoring
  */
 import type {
-    OccupancyFilter,
-    OccupancyResult,
-    OccupancySlot,
-    OccupancyStats
+  OccupancyFilter,
+  OccupancyResult,
+  OccupancySlot,
+  OccupancyStats
 } from "../pricing/types";
 import type { OccupancyRepository } from "./OccupancyRepository";
 
@@ -70,13 +70,30 @@ export class OccupancyService {
     const confirmedSlots = slots.filter(slot => slot.status === 'confirmed').length;
     const deadHourSlots = slots.filter(slot => slot.isDeadHour).length;
     
-    const totalRevenue = slots
-      .filter(slot => slot.status === 'confirmed')
+    // Process only confirmed slots for calculations
+    const confirmedReservations = slots.filter(slot => slot.status === 'confirmed');
+    
+    const totalRevenue = confirmedReservations
       .reduce((sum, slot) => sum + slot.finalPrice, 0);
     
-    const deadHourRevenue = slots
-      .filter(slot => slot.status === 'confirmed' && slot.isDeadHour)
+    const totalEmployeeCost = confirmedReservations.reduce((sum, slot) => {
+      const hours = (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60 * 60);
+      return sum + (slot.hourlyRate * hours);
+    }, 0);
+
+    const totalProfit = totalRevenue - totalEmployeeCost;
+
+    const deadHourReservations = confirmedReservations.filter(slot => slot.isDeadHour);
+    
+    const deadHourRevenue = deadHourReservations
       .reduce((sum, slot) => sum + slot.finalPrice, 0);
+
+    const deadHourCost = deadHourReservations.reduce((sum, slot) => {
+      const hours = (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60 * 60);
+      return sum + (slot.hourlyRate * hours);
+    }, 0);
+
+    const deadHourProfit = deadHourRevenue - deadHourCost;
 
     const occupancyRate = totalSlots > 0 ? confirmedSlots / totalSlots : 0;
 
@@ -84,8 +101,11 @@ export class OccupancyService {
       totalSlots,
       confirmedSlots,
       totalRevenue,
+      totalEmployeeCost,
+      totalProfit,
       deadHourSlots,
       deadHourRevenue,
+      deadHourProfit,
       occupancyRate,
     };
   }
@@ -107,54 +127,5 @@ export class OccupancyService {
       dateFrom: startOfWeek.toISOString(),
       dateTo: endOfWeek.toISOString(),
     };
-  }
-
-  /**
-   * Generate quick filter presets
-   */
-  getFilterPresets() {
-    const now = new Date();
-    
-    // Today
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(today);
-    todayEnd.setHours(23, 59, 59, 999);
-
-    // This week
-    const thisWeekStart = new Date(now);
-    thisWeekStart.setDate(now.getDate() - now.getDay());
-    thisWeekStart.setHours(0, 0, 0, 0);
-    const thisWeekEnd = new Date(thisWeekStart);
-    thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
-    thisWeekEnd.setHours(23, 59, 59, 999);
-
-    // This month
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    return [
-      {
-        label: "Dzisiaj",
-        filter: {
-          dateFrom: today.toISOString(),
-          dateTo: todayEnd.toISOString(),
-        }
-      },
-      {
-        label: "Ten tydzień",
-        filter: {
-          dateFrom: thisWeekStart.toISOString(),
-          dateTo: thisWeekEnd.toISOString(),
-        }
-      },
-      {
-        label: "Ten miesiąc",
-        filter: {
-          dateFrom: thisMonthStart.toISOString(),
-          dateTo: thisMonthEnd.toISOString(),
-        }
-      },
-    ];
   }
 }
